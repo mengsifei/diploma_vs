@@ -1,4 +1,4 @@
-from poolings import *
+from models.poolings import *
 import torch
 from transformers import AutoModel
 import torch.nn as nn

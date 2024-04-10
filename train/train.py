@@ -54,5 +54,5 @@ def train_model(model, criterion, optimizer, scheduler, train_loader, val_loader
         print(f"Validation - MAE Score: {mae_mean:.4f}, QWK: {qwk_mean:.4f}")
         if qwk_mean > best_qwk:
             best_qwk = qwk_mean
-            torch.save(model.state_dict(), 'checkpoints/best_model{}.pth'.format(addtional_info))
+            torch.save(model.state_dict(), 'checkpoints/best_model_{}.pth'.format(addtional_info))
     return history
