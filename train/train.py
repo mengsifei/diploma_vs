@@ -8,11 +8,11 @@ def train_model(model, criteria, optimizer, scheduler, train_loader, val_loader,
     best_val_loss = [np.inf, np.inf, np.inf, np.inf]  # Initialize best validation loss
     epochs_no_improve = 0  # Track epochs with no improvement
     n_epochs_stop = 6  # Number of epochs to stop after no improvement
+    rubrics = ['tr', 'cc', 'lr', 'gra']
     history = {
         'train_loss': [],
         'kappa_scores_mean': [],
-        'maes_mean': []
-    }
+        'maes_mean': []}
     for i, rubric in enumerate(rubrics):
         history['validation_loss_{}'.format(rubric)] = []
         history['kappa_{}'.format(rubric)] = []
@@ -79,7 +79,6 @@ def train_model(model, criteria, optimizer, scheduler, train_loader, val_loader,
         maes, qwks, valid_loss = evaluate_model(model, val_loader, criteria, device)
         mae_mean = np.mean(maes)
         qwk_mean = np.mean(qwks)
-        rubrics = ['tr', 'cc', 'lr', 'gra']
         for i, rubric in enumerate(rubrics):
             history['validation_loss_{}'.format(rubric)].append(valid_loss[i])
             history['kappa_{}'.format(rubric)].append(qwks[i])
