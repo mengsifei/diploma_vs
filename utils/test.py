@@ -4,14 +4,13 @@ import re
 from datasets.augmentation_methods import *
 
 def score_essay_vanilla(topic, essay, tokenizer, model, device):
-    combined_text = f"[TOPIC] {topic} [TOPIC] {topic} [ESSAY] {essay}"
     inputs = tokenizer.encode_plus(
-        combined_text,
+        [topic, essay.replace("\n", f" [SEP][SEP] ")],
         None,
         add_special_tokens=True,
         max_length=512,
         padding='max_length',
-        return_token_type_ids=False,
+        return_token_type_ids=True,
         truncation=True,
         return_attention_mask=True,
         return_tensors='pt'

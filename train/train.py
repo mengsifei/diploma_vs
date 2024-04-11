@@ -4,7 +4,7 @@ import torch
 from train.evaluate import *
 import gc
 
-def train_model(model, criteria, optimizer, scheduler, train_loader, val_loader, device, additional_info, is_dual_version, epochs=10):
+def train_model(model, criteria, optimizer, scheduler, train_loader, val_loader, device, additional_info, is_dual_version=False, epochs=10):
     best_val_loss = [np.inf, np.inf, np.inf, np.inf]  # Initialize best validation loss
     epochs_no_improve = 0  # Track epochs with no improvement
     n_epochs_stop = 6  # Number of epochs to stop after no improvement
@@ -53,7 +53,7 @@ def train_model(model, criteria, optimizer, scheduler, train_loader, val_loader,
 
                 # loss = sum(losses)  # Combine the losses from all subtasks
             else:
-                inputs = {k: batch[k].to(device) for k in ['input_ids', 'attention_mask']}
+                inputs = {k: batch[k].to(device) for k in ['input_ids', 'attention_mask', 'token_type_ids']}
                 labels = batch['labels'].to(device)
                 optimizer.zero_grad()
                 outputs = model(**inputs)
@@ -95,11 +95,11 @@ def train_model(model, criteria, optimizer, scheduler, train_loader, val_loader,
             if valid_loss[i] < best_val_loss[i]:
                 best_val_loss[i] = valid_loss[i]
                 improved = True
-
-        if improved:
-            epochs_no_improve = 0
+        if np.mean(valid_loss) < np.mean(best_val_loss):
             torch.save(model.state_dict(), f'checkpoints/best_model_{additional_info}.pth')
             print(f"New best model saved at epoch {epoch+1}")
+        if improved:
+            epochs_no_improve = 0
         else:
             epochs_no_improve += 1
 

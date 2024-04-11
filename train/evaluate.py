@@ -25,7 +25,7 @@ def evaluate_model(model, loader, criteria, is_dual_version, device):
                                 topic_input_ids=topic_inputs['topic_input_ids'], 
                                 topic_attention_mask=topic_inputs['topic_attention_mask'])
             else:
-                inputs = {k: batch[k].to(device) for k in ['input_ids', 'attention_mask']}
+                inputs = {k: batch[k].to(device) for k in ['input_ids', 'attention_mask', 'token_type_ids']}
                 labels = batch['labels'].to(device)
                 outputs = model(**inputs)
             preds = outputs.detach().cpu().numpy()
