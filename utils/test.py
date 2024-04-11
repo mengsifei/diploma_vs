@@ -3,7 +3,7 @@ import torch
 import re
 from datasets.augmentation_methods import *
 
-def score_essay(topic, essay, tokenizer, model, device):
+def score_essay_vanilla(topic, essay, tokenizer, model, device):
     combined_text = f"[TOPIC] {topic} [TOPIC] {topic} [ESSAY] {essay}"
     inputs = tokenizer.encode_plus(
         combined_text,
@@ -25,9 +25,44 @@ def score_essay(topic, essay, tokenizer, model, device):
     outputs = np.clip(outputs, 1, 9)
     return outputs
 
-def test(best_model, tokenizer, test_df, device, prompt_id=1, essay_id=100):
+
+def score_essay_dual(topic, essay, tokenizer, model, device):
+    essay_inputs = tokenizer(
+        essay,
+        max_length=512 - 60, 
+        padding='max_length',
+        truncation=True,
+        return_tensors='pt'
+    )
+    essay_inputs = {'essay_input_ids': essay_inputs['input_ids'],
+            'essay_attention_mask': essay_inputs['attention_mask']}
+
+    topic_inputs = tokenizer(
+        topic,
+        max_length=60,
+        padding='max_length',
+        truncation=True,
+        return_tensors='pt'
+    )
+    topic_inputs = {'topic_input_ids': topic_inputs['input_ids'],
+            'topic_attention_mask': topic_inputs['attention_mask']}
+    essay_inputs = {k: v.to(device) for k, v in essay_inputs.items()}
+    topic_inputs = {k: v.to(device) for k, v in topic_inputs.items()}
+    
+    with torch.no_grad():
+        outputs = model(essay_input_ids=essay_inputs['essay_input_ids'], 
+                            essay_attention_mask=essay_inputs['essay_attention_mask'], 
+                            topic_input_ids=topic_inputs['topic_input_ids'], 
+                            topic_attention_mask=topic_inputs['topic_attention_mask'])
+        outputs = outputs.cpu().numpy()[0]
+        outputs = np.round(outputs * 2) / 2
+    outputs = np.clip(outputs, 1, 9)
+    return outputs
+
+def test(best_model, tokenizer, test_df, device, is_dual, prompt_id=1, essay_id=100):
     rubrics = ['Task Response', 'Coherence and Cohesion',
        'Lexical Resource', 'Grammatical Range and Accuracy']
+    score_essay = score_essay_dual if is_dual else score_essay_vanilla
     topic = test_df.iloc[prompt_id].prompt
     right_essay = test_df.iloc[prompt_id].essay
     swapped_essay = test_df.iloc[essay_id].essay
