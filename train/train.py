@@ -86,6 +86,7 @@ def train_model(model, criteria, optimizer, scheduler, train_loader, val_loader,
             history['mae_{}'.format(rubric)].append(maes[i])
         history['kappa_scores_mean'].append(qwk_mean)
         history['maes_mean'].append(mae_mean)
+<<<<<<< HEAD
 
         print(f"Epoch {epoch+1}/{epochs}, Validation MAE: {mae_mean:.4f}, Validation QWK: {qwk_mean:.4f}")
         
@@ -108,3 +109,18 @@ def train_model(model, criteria, optimizer, scheduler, train_loader, val_loader,
             break
 
     return history
+=======
+        history['kappa_tr'].append(qwks[0])
+        history['kappa_cc'].append(qwks[1])
+        history['kappa_lr'].append(qwks[2])
+        history['kappa_gra'].append(qwks[3])
+        history['mae_tr'].append(maes[0])
+        history['mae_cc'].append(maes[1])
+        history['mae_lr'].append(maes[2])
+        history['mae_gra'].append(maes[3])
+        print(f"Validation - MAE Score: {mae_mean:.4f}, QWK: {qwk_mean:.4f}")
+        if qwk_mean > best_qwk:
+            best_qwk = qwk_mean
+            torch.save(model.state_dict(), 'checkpoints/best_model_{}.pth'.format(addtional_info))
+    return history
+>>>>>>> 905505a0298858f023a726f229be65557050cd1a
