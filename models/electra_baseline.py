@@ -20,10 +20,10 @@ class ELECTRA(torch.nn.Module):
         return outputs
 
 
-
 from torch.nn import LayerNorm
 import math
 import torch.nn.functional as F
+import torch.nn.init as init
 
 class CrossAttention(nn.Module):
     def __init__(self, hidden_size):
@@ -33,6 +33,10 @@ class CrossAttention(nn.Module):
         self.value = nn.Linear(hidden_size, hidden_size)
         self.scale = math.sqrt(hidden_size)
         self.norm = LayerNorm(hidden_size)
+        self.weight = nn.Parameter(torch.Tensor(hidden_size, hidden_size))
+        self.bias = nn.Parameter(torch.Tensor(hidden_size))
+        init.xavier_uniform_(self.weight)
+        init.zeros_(self.bias)
 
     def forward(self, queries, keys, values, mask=None):
         Q = self.query(queries)
@@ -55,6 +59,7 @@ class CustomELECTRA(nn.Module):
         self.electra = AutoModel.from_pretrained('google/electra-small-discriminator')
         self.cross_attention = CrossAttention(hidden_size)
         self.pooler = MeanPooling()
+        self.dropout = nn.Dropout(0.2)
         # Output heads for each criterion
         self.task_response_head = nn.Linear(hidden_size, 1)
         self.coherence_head = nn.Linear(hidden_size, 1)
@@ -66,6 +71,7 @@ class CustomELECTRA(nn.Module):
         topic_outputs = self.electra(input_ids=topic_input_ids, attention_mask=topic_attention_mask).last_hidden_state
 
         task_response = self.cross_attention(essay_outputs, topic_outputs, topic_outputs)
+        task_response = self.dropout(task_response)
         pooled_task_response = self.pooler(task_response, essay_attention_mask)
         pooled_essay = self.pooler(essay_outputs, essay_attention_mask)
         
