@@ -2,7 +2,7 @@ import torch
 import numpy as np
 from sklearn.metrics import mean_absolute_error, cohen_kappa_score
 
-def evaluate_model(model, loader, criteria, device):
+def evaluate_model(model, loader, criteria, is_dual_version, device):
     model.eval()  # Set the model to evaluation mode
     total_mse_losses = [0, 0, 0, 0]
     all_preds = []
@@ -10,9 +10,24 @@ def evaluate_model(model, loader, criteria, device):
     
     with torch.no_grad():  # No gradients needed during evaluation
         for batch in loader:
-            inputs = {k: batch[k].to(device) for k in ['input_ids', 'attention_mask']}
-            labels = batch['labels'].to(device)
-            outputs = model(**inputs)
+            if is_dual_version:
+                essay_inputs = {
+                    'essay_input_ids': batch['essay_input_ids'].to(device),
+                    'essay_attention_mask': batch['essay_attention_mask'].to(device)
+                }
+                topic_inputs = {
+                    'topic_input_ids': batch['topic_input_ids'].to(device),
+                    'topic_attention_mask': batch['topic_attention_mask'].to(device)
+                }
+                labels = batch['labels'].to(device)
+                outputs = model(essay_input_ids=essay_inputs['essay_input_ids'], 
+                                essay_attention_mask=essay_inputs['essay_attention_mask'], 
+                                topic_input_ids=topic_inputs['topic_input_ids'], 
+                                topic_attention_mask=topic_inputs['topic_attention_mask'])
+            else:
+                inputs = {k: batch[k].to(device) for k in ['input_ids', 'attention_mask']}
+                labels = batch['labels'].to(device)
+                outputs = model(**inputs)
             preds = outputs.detach().cpu().numpy()
             labels_np = labels.cpu().numpy()
             all_preds.append(preds)

@@ -4,7 +4,7 @@ import torch
 from train.evaluate import *
 import gc
 
-def train_model(model, criteria, optimizer, scheduler, train_loader, val_loader, device, additional_info, epochs=10):
+def train_model(model, criteria, optimizer, scheduler, train_loader, val_loader, device, additional_info, is_dual_version, epochs=10):
     best_val_loss = [np.inf, np.inf, np.inf, np.inf]  # Initialize best validation loss
     epochs_no_improve = 0  # Track epochs with no improvement
     n_epochs_stop = 6  # Number of epochs to stop after no improvement
@@ -24,37 +24,39 @@ def train_model(model, criteria, optimizer, scheduler, train_loader, val_loader,
         total_weights = [0.0, 0.0, 0.0, 0.0]  # Initialize total_weights for this epoch
 
         for batch in train_loader:
-            # essay_inputs = {
-            #     'essay_input_ids': batch['essay_input_ids'].to(device),
-            #     'essay_attention_mask': batch['essay_attention_mask'].to(device)
-            # }
-            # topic_inputs = {
-            #     'topic_input_ids': batch['topic_input_ids'].to(device),
-            #     'topic_attention_mask': batch['topic_attention_mask'].to(device)
-            # }
-            # labels = batch['labels'].to(device)
-            # label_weights = batch['label_weights'].to(device).squeeze(1)  # Squeeze the singleton dimension
+            if is_dual_version:
+                essay_inputs = {
+                    'essay_input_ids': batch['essay_input_ids'].to(device),
+                    'essay_attention_mask': batch['essay_attention_mask'].to(device)
+                }
+                topic_inputs = {
+                    'topic_input_ids': batch['topic_input_ids'].to(device),
+                    'topic_attention_mask': batch['topic_attention_mask'].to(device)
+                }
+                labels = batch['labels'].to(device)
+                # label_weights = batch['label_weights'].to(device).squeeze(1)  # Squeeze the singleton dimension
 
-            # optimizer.zero_grad()
-            # outputs = model(essay_input_ids=essay_inputs['essay_input_ids'], 
-            #                 essay_attention_mask=essay_inputs['essay_attention_mask'], 
-            #                 topic_input_ids=topic_inputs['topic_input_ids'], 
-            #                 topic_attention_mask=topic_inputs['topic_attention_mask'])
+                optimizer.zero_grad()
+                outputs = model(essay_input_ids=essay_inputs['essay_input_ids'], 
+                                essay_attention_mask=essay_inputs['essay_attention_mask'], 
+                                topic_input_ids=topic_inputs['topic_input_ids'], 
+                                topic_attention_mask=topic_inputs['topic_attention_mask'])
 
-            # losses = []
-            # for i in range(4):  # Assuming 4 subtasks
-            #     weighted_loss = criteria[i](outputs[:, i], labels[:, i])
-            #     weighted_loss *= label_weights[:, i]  # Apply weights element-wise
-            #     final_loss = weighted_loss.mean() * loss_weights[i]  # Calculate mean of weighted losses
-            #     losses.append(final_loss)
-            #     running_losses[i] += final_loss.item() * label_weights[:, i].sum().item()  # Accumulate weighted losses
-            #     total_weights[i] += label_weights[:, i].sum().item()  # Accumulate weights
+                # losses = []
+                # for i in range(4):  # Assuming 4 subtasks
+                #     weighted_loss = criteria[i](outputs[:, i], labels[:, i])
+                #     weighted_loss *= label_weights[:, i]  # Apply weights element-wise
+                #     final_loss = weighted_loss.mean() * loss_weights[i]  # Calculate mean of weighted losses
+                #     losses.append(final_loss)
+                #     running_losses[i] += final_loss.item() * label_weights[:, i].sum().item()  # Accumulate weighted losses
+                #     total_weights[i] += label_weights[:, i].sum().item()  # Accumulate weights
 
-            # loss = sum(losses)  # Combine the losses from all subtasks
-            inputs = {k: batch[k].to(device) for k in ['input_ids', 'attention_mask']}
-            labels = batch['labels'].to(device)
-            optimizer.zero_grad()
-            outputs = model(**inputs)
+                # loss = sum(losses)  # Combine the losses from all subtasks
+            else:
+                inputs = {k: batch[k].to(device) for k in ['input_ids', 'attention_mask']}
+                labels = batch['labels'].to(device)
+                optimizer.zero_grad()
+                outputs = model(**inputs)
             losses = []
             for i in range(4):  # Assuming 4 subtasks
                 loss = criteria[i](outputs[:, i], labels[:, i]) * loss_weights[i]
@@ -76,7 +78,7 @@ def train_model(model, criteria, optimizer, scheduler, train_loader, val_loader,
         print(f"============Average MSE Loss on Training=============\n {np.round(avg_train_losses, 4)}")
 
         # Evaluation on the validation set
-        maes, qwks, valid_loss = evaluate_model(model, val_loader, criteria, device)
+        maes, qwks, valid_loss = evaluate_model(model, val_loader, criteria, is_dual_version, device)
         mae_mean = np.mean(maes)
         qwk_mean = np.mean(qwks)
         for i, rubric in enumerate(rubrics):
