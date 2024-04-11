@@ -96,7 +96,7 @@ def train_model(model, criteria, optimizer, scheduler, train_loader, val_loader,
 
         if improved:
             epochs_no_improve = 0
-            torch.save(model.state_dict(), f'best_model_{additional_info}.pth')
+            torch.save(model.state_dict(), f'checkpoints/best_model_{additional_info}.pth')
             print(f"New best model saved at epoch {epoch+1}")
         else:
             epochs_no_improve += 1
