@@ -51,7 +51,7 @@ class CustomDatasetSegment(torch.utils.data.Dataset):
         text = self.text[index]
         topic = self.topic[index]
         inputs = self.tokenizer.encode_plus(
-            [topic, text.replace("\n", f" [SEP][SEP] ")],
+            [topic.replace('\n', ''), text.replace("\n", f" [SEP][SEP] ")],
             None,
             add_special_tokens=True,
             max_length=self.max_len,
