@@ -1,19 +1,32 @@
 import torch
+import numpy as np
+
 class CustomDataset(torch.utils.data.Dataset):
     def __init__(self, df, tokenizer, max_len=512):
         self.tokenizer = tokenizer
         self.df = df
         self.text = df['essay']
         self.topic = df['prompt']
-        self.labels = self.df[['Task Response', 'Coherence and Cohesion',
-       'Lexical Resource', 'Grammatical Range and Accuracy']].values
+        self.labels = df[['Task Response', 'Coherence and Cohesion',
+                          'Lexical Resource', 'Grammatical Range and Accuracy']].values
         self.max_len = max_len
+        self.weights = self.calculate_weights()
 
     def __len__(self):
         return len(self.text)
 
+    def calculate_weights(self):
+        rubrics = ['Task Response', 'Coherence and Cohesion', 'Lexical Resource', 'Grammatical Range and Accuracy']
+        weights = {}
+        for criterion in rubrics:
+            value_counts = self.df[criterion].value_counts().sort_index()
+            total_counts = sum(value_counts)
+            weights[criterion] = total_counts / value_counts  # Inverse of frequency
+            weights[criterion] /= weights[criterion].mean()   # Normalize
+        return weights
+
     def __getitem__(self, index):
-        text = self.text[index].replace("\n", f" [SEP][SEP] ")
+        text = self.text[index]
         topic = self.topic[index]
         combined_text = f"[TOPIC] {topic} [TOPIC] {topic} [ESSAY] {text}"
         inputs = self.tokenizer.encode_plus(
@@ -27,11 +40,18 @@ class CustomDataset(torch.utils.data.Dataset):
             return_attention_mask=True,
             return_tensors='pt'
         )
+        label_weights = np.array([
+            self.weights['Task Response'][self.labels[index, 0]],
+            self.weights['Coherence and Cohesion'][self.labels[index, 1]],
+            self.weights['Lexical Resource'][self.labels[index, 2]],
+            self.weights['Grammatical Range and Accuracy'][self.labels[index, 3]]
+        ])
         return {
             'input_ids': inputs['input_ids'].flatten(),
             'attention_mask': inputs['attention_mask'].flatten(),
             'token_type_ids': inputs['token_type_ids'].flatten(),
-            'labels': torch.FloatTensor(list(self.labels[index]))
+            'labels': torch.FloatTensor(self.labels[index]),
+            'label_weights': torch.FloatTensor(label_weights)
         }
     
 
