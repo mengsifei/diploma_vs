@@ -13,7 +13,7 @@ class CustomDataset(torch.utils.data.Dataset):
         return len(self.text)
 
     def __getitem__(self, index):
-        text = self.text[index]
+        text = self.text[index].replace("\n", f" [SEP][SEP] ")
         topic = self.topic[index]
         combined_text = f"[TOPIC] {topic} [TOPIC] {topic} [ESSAY] {text}"
         inputs = self.tokenizer.encode_plus(
