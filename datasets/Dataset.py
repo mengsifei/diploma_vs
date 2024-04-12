@@ -22,7 +22,7 @@ class CustomDataset(torch.utils.data.Dataset):
             add_special_tokens=True,
             max_length=self.max_len,
             padding='max_length',
-            return_token_type_ids=False,
+            return_token_type_ids=True,
             truncation=True,
             return_attention_mask=True,
             return_tensors='pt'
@@ -30,6 +30,7 @@ class CustomDataset(torch.utils.data.Dataset):
         return {
             'input_ids': inputs['input_ids'].flatten(),
             'attention_mask': inputs['attention_mask'].flatten(),
+            'token_type_ids': inputs['token_type_ids'].flatten(),
             'labels': torch.FloatTensor(list(self.labels[index]))
         }
     
