@@ -20,7 +20,7 @@ def score_essay_vanilla(topic, essay, tokenizer, model, device):
     with torch.no_grad():
         outputs = model(**inputs)
         outputs = outputs.cpu().numpy()[0]
-        outputs = np.round(outputs * 2) / 2
+        outputs = np.round(outputs)
     outputs = np.clip(outputs, 1, 9)
     return outputs
 
@@ -54,7 +54,7 @@ def score_essay_dual(topic, essay, tokenizer, model, device):
                             topic_input_ids=topic_inputs['topic_input_ids'], 
                             topic_attention_mask=topic_inputs['topic_attention_mask'])
         outputs = outputs.cpu().numpy()[0]
-        outputs = np.round(outputs * 2) / 2
+        outputs = np.round(outputs)
     outputs = np.clip(outputs, 1, 9)
     return outputs
 
@@ -80,6 +80,8 @@ def test(best_model, tokenizer, test_df, device, is_dual, prompt_id=1, essay_id=
 
     print("++++++++++++++++++++++++++++")
     print("CASE_2: Totally Off topic")
+    print("Prompt:", topic)
+    print("New prompt:", test_df.iloc[essay_id].prompt)
     print(score_essay(topic, swapped_essay, tokenizer, best_model, device))
 
 
@@ -95,7 +97,14 @@ def test(best_model, tokenizer, test_df, device, is_dual, prompt_id=1, essay_id=
 
     print("++++++++++++++++++++++++++++")
     print("CASE_4: Spelling mistakes")
-    edited_essay = misspell_text(right_essay)
+    print("Proportion = 0.9")
+    edited_essay = misspell_text(right_essay, 0.9)
+    print(score_essay(topic, edited_essay, tokenizer, best_model, device))
+    print("Proportion = 0.5")
+    edited_essay = misspell_text(right_essay, 0.5)
+    print(score_essay(topic, edited_essay, tokenizer, best_model, device))
+    print("Proportion = 0.2")
+    edited_essay = misspell_text(right_essay, 0.2)
     print(score_essay(topic, edited_essay, tokenizer, best_model, device))
 
 

@@ -46,8 +46,8 @@ def evaluate_model(model, loader, criteria, is_dual_version, device):
     maes = []
     for i in range(4):  # Assuming 4 subtasks
         # Compute Cohen's Kappa and MAE for each subtask
-        kappa = cohen_kappa_score(np.round(all_targets[:, i] * 2).astype(int), 
-                                  np.round(all_preds[:, i] * 2).astype(int), 
+        kappa = cohen_kappa_score(np.round(all_targets[:, i]).astype(int), 
+                                  np.round(all_preds[:, i]).astype(int), 
                                   weights='quadratic')
         mae = mean_absolute_error(all_targets[:, i], all_preds[:, i])
         kappas.append(kappa)
