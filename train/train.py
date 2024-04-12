@@ -91,13 +91,13 @@ def train_model(model, criteria, optimizer, scheduler, train_loader, val_loader,
         
         # Check for improvement and potentially save the model
         improved = False
+        if np.mean(valid_loss) < np.mean(best_val_loss):
+            torch.save(model.state_dict(), f'checkpoints/best_model_{additional_info}.pth')
+            print(f"New best model saved at epoch {epoch+1}")
         for i in range(4):  # Assuming 4 criteria
             if valid_loss[i] < best_val_loss[i]:
                 best_val_loss[i] = valid_loss[i]
                 improved = True
-        if np.mean(valid_loss) < np.mean(best_val_loss):
-            torch.save(model.state_dict(), f'checkpoints/best_model_{additional_info}.pth')
-            print(f"New best model saved at epoch {epoch+1}")
         if improved:
             epochs_no_improve = 0
         else:
