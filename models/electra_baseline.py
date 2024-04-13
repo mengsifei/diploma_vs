@@ -10,9 +10,10 @@ import torch.nn as nn
 #         self.dropout = nn.Dropout(0.2)
 #         self.pooler = MeanPooling()
 #         self.out = nn.Linear(self.electra.config.hidden_size, 4)  # Ensure hidden_size matches
-
-#     def forward(self, input_ids, attention_mask):
-#         outputs = self.electra(input_ids=input_ids, attention_mask=attention_mask)
+#     def resize_token_embeddings(self, new_num_tokens):
+#         self.electra.resize_token_embeddings(new_num_tokens)
+#     def forward(self, input_ids, attention_mask, token_type_ids):
+#         outputs = self.electra(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids)
 #         last_hidden_state = outputs.last_hidden_state
 #         pooled_output = self.pooler(last_hidden_state, attention_mask)
 #         dropout_output = self.dropout(pooled_output)
@@ -20,22 +21,77 @@ import torch.nn as nn
 #         return outputs
 
 
-class ELECTRA(torch.nn.Module):
-    def __init__(self):
+class ELECTRA(nn.Module):
+    def __init__(self, hidden_size, bidirectional=True):
         super(ELECTRA, self).__init__()
         self.electra = ElectraModel.from_pretrained('google/electra-small-discriminator')
-        self.dropout = nn.Dropout(0.2)
-        self.pooler = MeanPooling()
-        self.out = nn.Linear(self.electra.config.hidden_size, 4)  # Ensure hidden_size matches
-    def resize_token_embeddings(self, new_num_tokens):
-        self.electra.resize_token_embeddings(new_num_tokens)
+        self.task_response_lstm = nn.LSTM(input_size=hidden_size,
+                                          hidden_size=hidden_size,
+                                          bidirectional=True)
+        self.coherence_lstm = nn.LSTM(input_size=hidden_size,
+                                      hidden_size=hidden_size,
+                                      bidirectional=False)
+        self.lexical_resource_lstm = nn.LSTM(input_size=hidden_size,
+                                             hidden_size=hidden_size,
+                                             bidirectional=True)
+        self.grammatical_range_lstm = nn.LSTM(input_size=hidden_size,
+                                              hidden_size=hidden_size,
+                                              bidirectional=False)
+        self.soft_attention = AttentionPooling(hidden_dim=hidden_size * 2 if bidirectional else hidden_size)
+        self.task_response_head = nn.Sequential(
+            nn.Linear(hidden_size * 2 if bidirectional else hidden_size, hidden_size),
+            nn.ReLU(),
+            nn.Dropout(0.1),
+            nn.Linear(hidden_size, 1)
+        )
+        self.coherence_head = nn.Sequential(
+            nn.Linear(hidden_size, hidden_size),
+            nn.ReLU(),
+            nn.Dropout(0.1),
+            nn.Linear(hidden_size, 1)
+        )
+        self.lexical_resource_head = nn.Sequential(
+            nn.Linear(hidden_size * 2 if bidirectional else hidden_size, hidden_size),
+            nn.ReLU(),
+            nn.Dropout(0.1),
+            nn.Linear(hidden_size, 1)
+        )
+        self.grammatical_range_head = nn.Sequential(
+            nn.Linear(hidden_size, hidden_size),
+            nn.ReLU(),
+            nn.Dropout(0.1),
+            nn.Linear(hidden_size, 1)
+        )
+        
     def forward(self, input_ids, attention_mask, token_type_ids):
         outputs = self.electra(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids)
-        last_hidden_state = outputs.last_hidden_state
-        pooled_output = self.pooler(last_hidden_state, attention_mask)
-        dropout_output = self.dropout(pooled_output)
-        outputs = self.out(dropout_output)
-        return outputs
+        sequence_output = outputs.last_hidden_state
+        
+        # Apply LSTM layers
+        task_response_features, _ = self.task_response_lstm(sequence_output)
+        coherence_features, _ = self.coherence_lstm(sequence_output)
+        lexical_resource_features, _ = self.lexical_resource_lstm(sequence_output)
+        grammatical_range_features, _ = self.grammatical_range_lstm(sequence_output)
+        
+        # Apply attention to each set of LSTM features
+        task_response_attended = self.soft_attention(task_response_features)
+        coherence_attended = self.soft_attention(coherence_features)
+        lexical_resource_attended = self.soft_attention(lexical_resource_features)
+        grammatical_range_attended = self.soft_attention(grammatical_range_features)
+        
+        # Compute the outputs for each task
+        task_response_output = self.task_response_head(task_response_attended)
+        coherence_output = self.coherence_head(coherence_attended)
+        lexical_resource_output = self.lexical_resource_head(lexical_resource_attended)
+        grammatical_range_output = self.grammatical_range_head(grammatical_range_attended)
+        
+        # Concatenate the outputs for each task
+        final_output = torch.cat((task_response_output,
+                                  coherence_output,
+                                  lexical_resource_output,
+                                  grammatical_range_output), dim=-1)
+        
+        return final_output
 
 
 from torch.nn import LayerNorm

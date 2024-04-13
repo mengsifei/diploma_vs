@@ -15,7 +15,7 @@ class CustomDataset(torch.utils.data.Dataset):
     def __len__(self):
         return len(self.text)
 
-    def calculate_weights(self, dampening_factor=0.8):
+    def calculate_weights(self, dampening_factor=0.0):
         rubrics = ['Task Response', 'Coherence and Cohesion', 'Lexical Resource', 'Grammatical Range and Accuracy']
         weights = {}
         for criterion in rubrics:
