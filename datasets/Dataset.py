@@ -10,16 +10,16 @@ class CustomDataset(torch.utils.data.Dataset):
         self.labels = df[['Task Response', 'Coherence and Cohesion',
                           'Lexical Resource', 'Grammatical Range and Accuracy']].values
         self.max_len = max_len
-        self.weights = self.calculate_weights(df, dampening_factor=0.8)
+        self.weights = self.calculate_weights(dampening_factor=0.8)
 
     def __len__(self):
         return len(self.text)
 
-    def calculate_weights(df, dampening_factor=0.8):
+    def calculate_weights(self, dampening_factor=0.8):
         rubrics = ['Task Response', 'Coherence and Cohesion', 'Lexical Resource', 'Grammatical Range and Accuracy']
         weights = {}
         for criterion in rubrics:
-            value_counts = df[criterion].value_counts().sort_index()
+            value_counts = self.df[criterion].value_counts().sort_index()
             total_counts = sum(value_counts)
             weights[criterion] = total_counts / value_counts  # Inverse of frequency
             weights[criterion] = (weights[criterion] ** dampening_factor)  # Dampen the effect
