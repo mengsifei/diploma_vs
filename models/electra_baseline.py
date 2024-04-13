@@ -27,7 +27,8 @@ class ELECTRA(torch.nn.Module):
         self.dropout = nn.Dropout(0.2)
         self.pooler = MeanPooling()
         self.out = nn.Linear(self.electra.config.hidden_size, 4)  # Ensure hidden_size matches
-
+    def resize_token_embeddings(self, new_num_tokens):
+        self.electra.resize_token_embeddings(new_num_tokens)
     def forward(self, input_ids, attention_mask, token_type_ids):
         outputs = self.electra(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids)
         last_hidden_state = outputs.last_hidden_state
