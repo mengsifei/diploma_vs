@@ -22,7 +22,7 @@ import torch.nn as nn
 
 
 class ELECTRA(nn.Module):
-    def __init__(self, hidden_size, bidirectional=True):
+    def __init__(self, hidden_size=256, bidirectional=True):
         super(ELECTRA, self).__init__()
         self.electra = ElectraModel.from_pretrained('google/electra-small-discriminator')
         self.task_response_lstm = nn.LSTM(input_size=hidden_size,
@@ -67,11 +67,11 @@ class ELECTRA(nn.Module):
         outputs = self.electra(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids)
         sequence_output = outputs.last_hidden_state
         
-        # # Apply LSTM layers
-        # task_response_features, _ = self.task_response_lstm(sequence_output)
-        # coherence_features, _ = self.coherence_lstm(sequence_output)
-        # lexical_resource_features, _ = self.lexical_resource_lstm(sequence_output)
-        # grammatical_range_features, _ = self.grammatical_range_lstm(sequence_output)
+        # Apply LSTM layers
+        task_response_features, _ = self.task_response_lstm(sequence_output)
+        coherence_features, _ = self.coherence_lstm(sequence_output)
+        lexical_resource_features, _ = self.lexical_resource_lstm(sequence_output)
+        grammatical_range_features, _ = self.grammatical_range_lstm(sequence_output)
         
         # Apply attention to each set of LSTM features
         task_response_attended = self.soft_attention(sequence_output)
