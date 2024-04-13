@@ -4,12 +4,12 @@ import torch
 from train.evaluate import evaluate_model
 import gc
 
-def train_model(model, criteria, optimizer, scheduler, train_loader, val_loader, device, additional_info, is_dual_version=False, epochs=10):
+def train_model(model, criteria, optimizer, scheduler, train_loader, val_loader, device, additional_info, is_dual_version=False, epochs=10, early_stop=5):
     best_val_loss = [np.inf] * 4  # Initialize best validation loss
     best_mae = [np.inf] * 4
     best_qwk = [-np.inf] * 4
     epochs_no_improve = 0
-    n_epochs_stop = 5
+    n_epochs_stop = early_stop
     rubrics = ['tr', 'cc', 'lr', 'gra']
     history = {'train_loss': [], 'kappa_scores_mean': [], 'maes_mean': []}
     past_losses = [[], [], [], []]  # List to store past losses for each task
@@ -39,7 +39,7 @@ def train_model(model, criteria, optimizer, scheduler, train_loader, val_loader,
             for i in range(4):
                 weighted_loss = criteria[i](outputs[:, i], labels[:, i])
                 weighted_loss *= label_weights[:, i]
-                final_loss = weighted_loss.mean() #* task_weights[i]  # Apply task-specific weight
+                final_loss = weighted_loss.mean() * 0.25 #* task_weights[i]  # Apply task-specific weight
                 losses.append(final_loss)
                 running_losses[i] += final_loss.item() * labels.size(0)  # Correct usage of .item()
                 total_weights[i] += label_weights[:, i].sum().item()
@@ -62,7 +62,7 @@ def train_model(model, criteria, optimizer, scheduler, train_loader, val_loader,
         history['train_loss'].append(avg_train_losses)
         print(f"============Average MSE Loss on Training=============\n {np.round(avg_train_losses, 4)}")
 
-        maes, qwks, valid_loss = evaluate_model(model, val_loader, criteria, past_losses, is_dual_version, device)
+        maes, qwks, valid_loss = evaluate_model(model, val_loader, criteria, is_dual_version, device)
         history = update_history(history, rubrics, maes, qwks, valid_loss, epoch, epochs)
         improved = False
         if np.mean(valid_loss) < np.mean(best_val_loss) or ((np.mean(qwks) > np.mean(best_qwk)) and (np.mean(maes) < np.mean(best_mae))):
@@ -95,13 +95,3 @@ def update_history(history, rubrics, maes, qwks, valid_loss, epoch, epochs):
     print(f"Epoch {epoch+1}/{epochs}, Validation MAE: {mae_mean:.4f}, Validation QWK: {qwk_mean:.4f}")
     return history
 
-def check_improvement(best_val_loss, valid_loss, epoch, additional_info, model):
-    improved = False
-    if np.mean(valid_loss) < np.mean(best_val_loss):
-        torch.save(model.state_dict(), f'checkpoints/best_model_{additional_info}.pth')
-        print(f"New best model saved at epoch {epoch+1}")
-        for i in range(4):
-            if valid_loss[i] < best_val_loss[i]:
-                best_val_loss[i] = valid_loss[i]
-                improved = True
-    return improved

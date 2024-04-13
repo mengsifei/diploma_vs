@@ -2,15 +2,15 @@ import torch
 import numpy as np
 from sklearn.metrics import mean_absolute_error, cohen_kappa_score
 
-def evaluate_model(model, loader, criteria, past_losses, is_dual_version, device):
+def evaluate_model(model, loader, criteria, is_dual_version, device):
     model.eval()
     running_losses = [0.0] * 4
     total_weights = [0.0] * 4
     all_preds = []
     all_targets = []
 
-    average_past_losses = [np.mean(losses) if losses else 1.0 for losses in past_losses]
-    task_weights = [1.0 / (loss + 1e-6) for loss in average_past_losses]
+    # average_past_losses = [np.mean(losses) if losses else 1.0 for losses in past_losses]
+    # task_weights = [1.0 / (loss + 1e-6) for loss in average_past_losses]
 
     with torch.no_grad():
         for batch in loader:
@@ -27,7 +27,7 @@ def evaluate_model(model, loader, criteria, past_losses, is_dual_version, device
             for i in range(4):
                 weighted_loss = criteria[i](outputs[:, i], labels[:, i])
                 weighted_loss *= label_weights[:, i]
-                final_loss = weighted_loss.mean() #* task_weights[i]
+                final_loss = weighted_loss.mean() * 0.25 #* task_weights[i]
                 running_losses[i] += final_loss.item() * batch_size
                 total_weights[i] += label_weights[:, i].sum().item()
 
