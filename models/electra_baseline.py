@@ -67,17 +67,17 @@ class ELECTRA(nn.Module):
         outputs = self.electra(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids)
         sequence_output = outputs.last_hidden_state
         
-        # Apply LSTM layers
-        task_response_features, _ = self.task_response_lstm(sequence_output)
-        coherence_features, _ = self.coherence_lstm(sequence_output)
-        lexical_resource_features, _ = self.lexical_resource_lstm(sequence_output)
-        grammatical_range_features, _ = self.grammatical_range_lstm(sequence_output)
+        # # Apply LSTM layers
+        # task_response_features, _ = self.task_response_lstm(sequence_output)
+        # coherence_features, _ = self.coherence_lstm(sequence_output)
+        # lexical_resource_features, _ = self.lexical_resource_lstm(sequence_output)
+        # grammatical_range_features, _ = self.grammatical_range_lstm(sequence_output)
         
         # Apply attention to each set of LSTM features
-        task_response_attended = self.soft_attention(task_response_features)
-        coherence_attended = self.soft_attention(coherence_features)
-        lexical_resource_attended = self.soft_attention(lexical_resource_features)
-        grammatical_range_attended = self.soft_attention(grammatical_range_features)
+        task_response_attended = self.soft_attention(sequence_output)
+        coherence_attended = self.soft_attention(sequence_output)
+        lexical_resource_attended = self.soft_attention(sequence_output)
+        grammatical_range_attended = self.soft_attention(sequence_output)
         
         # Compute the outputs for each task
         task_response_output = self.task_response_head(task_response_attended)
