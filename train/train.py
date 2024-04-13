@@ -65,7 +65,7 @@ def train_model(model, criteria, optimizer, scheduler, train_loader, val_loader,
         maes, qwks, valid_loss = evaluate_model(model, val_loader, criteria, is_dual_version, device)
         history = update_history(history, rubrics, maes, qwks, valid_loss, epoch, epochs)
         improved = False
-        if np.mean(valid_loss) < np.mean(best_val_loss) or ((np.mean(qwks) > np.mean(best_qwk)) and (np.mean(maes) < np.mean(best_mae))):
+        if np.mean(valid_loss) < np.mean(best_val_loss) or ((np.mean(qwks) > np.mean(best_qwk))):
             torch.save(model.state_dict(), f'checkpoints/best_model_{additional_info}.pth')
             print(f"New best model saved at epoch {epoch+1}")
             improved = True
