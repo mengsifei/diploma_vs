@@ -25,31 +25,29 @@ class ELECTRA(nn.Module):
     def __init__(self, hidden_size=256, bidirectional=True):
         super(ELECTRA, self).__init__()
         self.electra = ElectraModel.from_pretrained('google/electra-small-discriminator')
-        # self.soft_attention = AttentionPooling(hidden_dim=hidden_size)
-        self.meanpooling = MeanPooling()
-        self.drop_coef = 0.1
+        self.soft_attention = AttentionPooling(hidden_dim=hidden_size)
         self.task_response_head = nn.Sequential(
             nn.Linear(hidden_size, hidden_size),
             nn.ReLU(),
-            nn.Dropout(self.drop_coef),
+            nn.Dropout(0.1),
             nn.Linear(hidden_size, 1)
         )
         self.coherence_head = nn.Sequential(
             nn.Linear(hidden_size, hidden_size),
             nn.ReLU(),
-            nn.Dropout(self.drop_coef),
+            nn.Dropout(0.1),
             nn.Linear(hidden_size, 1)
         )
         self.lexical_resource_head = nn.Sequential(
             nn.Linear(hidden_size, hidden_size),
             nn.ReLU(),
-            nn.Dropout(self.drop_coef),
+            nn.Dropout(0.1),
             nn.Linear(hidden_size, 1)
         )
         self.grammatical_range_head = nn.Sequential(
             nn.Linear(hidden_size, hidden_size),
             nn.ReLU(),
-            nn.Dropout(self.drop_coef),
+            nn.Dropout(0.1),
             nn.Linear(hidden_size, 1)
         )
         
@@ -59,15 +57,11 @@ class ELECTRA(nn.Module):
 
         
         # Apply attention to each set of LSTM features
-        # task_response_attended = self.soft_attention(sequence_output)
-        # coherence_attended = self.soft_attention(sequence_output)
-        # lexical_resource_attended = self.soft_attention(sequence_output)
-        # grammatical_range_attended = self.soft_attention(sequence_output)
-        task_response_attended = self.meanpooling(sequence_output, attention_mask)
-        coherence_attended = self.meanpooling(sequence_output, attention_mask)
-        lexical_resource_attended = self.meanpooling(sequence_output, attention_mask)
-        grammatical_range_attended = self.meanpooling(sequence_output, attention_mask)
-
+        task_response_attended = self.soft_attention(sequence_output)
+        coherence_attended = self.soft_attention(sequence_output)
+        lexical_resource_attended = self.soft_attention(sequence_output)
+        grammatical_range_attended = self.soft_attention(sequence_output)
+        
         # Compute the outputs for each task
         task_response_output = self.task_response_head(task_response_attended)
         coherence_output = self.coherence_head(coherence_attended)
