@@ -74,10 +74,10 @@ class ELECTRA(nn.Module):
         grammatical_range_features, _ = self.grammatical_range_lstm(sequence_output)
         
         # Apply attention to each set of LSTM features
-        task_response_attended = self.soft_attention(sequence_output)
-        coherence_attended = self.soft_attention(sequence_output)
-        lexical_resource_attended = self.soft_attention(sequence_output)
-        grammatical_range_attended = self.soft_attention(sequence_output)
+        task_response_attended = self.soft_attention(task_response_features)
+        coherence_attended = self.soft_attention(coherence_features)
+        lexical_resource_attended = self.soft_attention(lexical_resource_features)
+        grammatical_range_attended = self.soft_attention(grammatical_range_features)
         
         # Compute the outputs for each task
         task_response_output = self.task_response_head(task_response_attended)
