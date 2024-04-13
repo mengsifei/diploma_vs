@@ -10,18 +10,19 @@ class CustomDataset(torch.utils.data.Dataset):
         self.labels = df[['Task Response', 'Coherence and Cohesion',
                           'Lexical Resource', 'Grammatical Range and Accuracy']].values
         self.max_len = max_len
-        self.weights = self.calculate_weights()
+        self.weights = self.calculate_weights(df, dampening_factor=0.8)
 
     def __len__(self):
         return len(self.text)
 
-    def calculate_weights(self):
+    def calculate_weights(df, dampening_factor=0.8):
         rubrics = ['Task Response', 'Coherence and Cohesion', 'Lexical Resource', 'Grammatical Range and Accuracy']
         weights = {}
         for criterion in rubrics:
-            value_counts = self.df[criterion].value_counts().sort_index()
+            value_counts = df[criterion].value_counts().sort_index()
             total_counts = sum(value_counts)
             weights[criterion] = total_counts / value_counts  # Inverse of frequency
+            weights[criterion] = (weights[criterion] ** dampening_factor)  # Dampen the effect
             weights[criterion] /= weights[criterion].mean()   # Normalize
         return weights
 
@@ -29,7 +30,7 @@ class CustomDataset(torch.utils.data.Dataset):
         text = self.text[index]
         topic = self.topic[index]
         combined_text = f"[TOPIC] {topic} [TOPIC] {topic} [ESSAY] {text}"
-        inputs = self.tokenizer.encode_plus(
+        inputs = self.tokenizer.encode_plus(    
             combined_text,
             None,
             add_special_tokens=True,
