@@ -2,7 +2,7 @@ import torch
 import numpy as np
 
 class CustomDataset(torch.utils.data.Dataset):
-    def __init__(self, df, tokenizer, max_len=512):
+    def __init__(self, df, tokenizer, max_len=512, dampening_factor=0.):
         self.tokenizer = tokenizer
         self.df = df
         self.text = df['essay']
@@ -10,7 +10,7 @@ class CustomDataset(torch.utils.data.Dataset):
         self.labels = df[['Task Response', 'Coherence and Cohesion',
                           'Lexical Resource', 'Grammatical Range and Accuracy']].values
         self.max_len = max_len
-        self.weights = self.calculate_weights(dampening_factor=0.8)
+        self.weights = self.calculate_weights(dampening_factor)
 
     def __len__(self):
         return len(self.text)
@@ -27,7 +27,7 @@ class CustomDataset(torch.utils.data.Dataset):
         return weights
 
     def __getitem__(self, index):
-        text = self.text[index]
+        text = self.text[index].replace("\n", f" [SEP][SEP] ")
         topic = self.topic[index]
         combined_text = f"[TOPIC] {topic} [TOPIC] {topic} [ESSAY] {text}"
         inputs = self.tokenizer.encode_plus(    

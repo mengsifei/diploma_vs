@@ -27,7 +27,7 @@ def evaluate_model(model, loader, criteria, past_losses, is_dual_version, device
             for i in range(4):
                 weighted_loss = criteria[i](outputs[:, i], labels[:, i])
                 weighted_loss *= label_weights[:, i]
-                final_loss = weighted_loss.mean() * task_weights[i]
+                final_loss = weighted_loss.mean() #* task_weights[i]
                 running_losses[i] += final_loss.item() * batch_size
                 total_weights[i] += label_weights[:, i].sum().item()
 
