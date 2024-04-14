@@ -6,15 +6,13 @@ def evaluate_model(model, loader, criteria, is_dual_version, device):
     model.eval()
     running_losses = [0.0] * 4
     total_weights = [0.0] * 4
+    task_weights = [0.25] * 4
     all_preds = []
     all_targets = []
 
-    # average_past_losses = [np.mean(losses) if losses else 1.0 for losses in past_losses]
-    # task_weights = [1.0 / (loss + 1e-6) for loss in average_past_losses]
-
     with torch.no_grad():
         for batch in loader:
-            inputs = {k: v.to(device) for k, v in batch.items() if k.endswith('_ids') or k.endswith('_mask')}
+            inputs = {k: v.to(device) for k, v in batch.items() if k.endswith('_ids') or k.endswith('_mask') or k == 'features'}
             labels = batch['labels'].to(device)
             outputs = model(**inputs)
             label_weights = batch['label_weights'].to(device).squeeze(1)
@@ -27,7 +25,7 @@ def evaluate_model(model, loader, criteria, is_dual_version, device):
             for i in range(4):
                 weighted_loss = criteria[i](outputs[:, i], labels[:, i])
                 # weighted_loss *= label_weights[:, i]
-                final_loss = weighted_loss * 0.25 #* task_weights[i]
+                final_loss = weighted_loss * task_weights[i]
                 running_losses[i] += final_loss.item() * batch_size
                 total_weights[i] += label_weights[:, i].sum().item()
 

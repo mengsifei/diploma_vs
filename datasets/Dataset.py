@@ -1,5 +1,8 @@
 import torch
 import numpy as np
+import re
+from collections import Counter
+from nltk.corpus import stopwords
 
 class CustomDataset(torch.utils.data.Dataset):
     def __init__(self, df, tokenizer, max_len=512, dampening_factor=0.):
@@ -26,8 +29,27 @@ class CustomDataset(torch.utils.data.Dataset):
             weights[criterion] /= weights[criterion].mean()   # Normalize
         return weights
 
+
+    def calculate_features(text):
+        # Pre-compile regex patterns
+        word_pattern = re.compile(r'\w+')
+        paragraph_pattern = re.compile(r'\n')
+        sentence_pattern = re.compile(r'(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?)\s')
+        # Efficiently tokenize and process text
+        words = word_pattern.findall(text)
+        num_words = len(words)
+        num_paragraphs = len(paragraph_pattern.findall(text)) + 1
+        num_sentences = len(sentence_pattern.findall(text)) + 1
+        # Non-stop words that appear more than 5 times
+        stop_words = set(stopwords.words('english'))
+        word_counts = Counter(word.lower() for word in words if word.lower() not in stop_words)
+        frequent_words = sum(1 for _, count in word_counts.items() if count > 3)
+        return np.array([num_words, num_paragraphs, frequent_words, num_sentences], dtype=np.float32)
+
     def __getitem__(self, index):
-        text = self.text[index].replace("\n", f" [SEP][SEP] ")
+        text = self.text[index]
+        features = self.calculate_features(text)
+        text = text.replace("\n", f" [SEP][SEP] ")
         topic = self.topic[index]
         combined_text = f"[TOPIC] {topic} [TOPIC] {topic} [ESSAY] {text}"
         inputs = self.tokenizer.encode_plus(    
@@ -52,6 +74,7 @@ class CustomDataset(torch.utils.data.Dataset):
             'attention_mask': inputs['attention_mask'].flatten(),
             'token_type_ids': inputs['token_type_ids'].flatten(),
             'labels': torch.FloatTensor(self.labels[index]),
+            'features': torch.from_numpy(features),
             'label_weights': torch.FloatTensor(label_weights)
         }
     

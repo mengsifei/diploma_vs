@@ -12,7 +12,6 @@ def train_model(model, criteria, optimizer, scheduler, train_loader, val_loader,
     n_epochs_stop = early_stop
     rubrics = ['tr', 'cc', 'lr', 'gra']
     history = {'train_loss': [], 'kappa_scores_mean': [], 'maes_mean': []}
-    past_losses = [[], [], [], []]  # List to store past losses for each task
 
     for rubric in rubrics:
         history.update({f'validation_loss_{rubric}': [], f'kappa_{rubric}': [], f'mae_{rubric}': []})
@@ -22,15 +21,10 @@ def train_model(model, criteria, optimizer, scheduler, train_loader, val_loader,
         current_epoch_losses = [[], [], [], []]  # Temporary storage for current epoch losses
         running_losses = [0.0] * 4
         total_weights = [0.0] * 4
-        task_weights = [1.0] * 4  # Default task weights
-        
-        # Update task weights based on past losses after the first epoch
-        if epoch > 0:
-            average_past_losses = [np.mean(losses) if losses else 1.0 for losses in past_losses]  # Avoid division by zero
-            task_weights = [1.0 / (loss + 1e-6) for loss in average_past_losses]
+        task_weights = [0.25] * 4
 
         for batch in train_loader:
-            inputs = {k: v.to(device) for k, v in batch.items() if k.endswith('_ids') or k.endswith('_mask')}
+            inputs = {k: v.to(device) for k, v in batch.items() if k.endswith('_ids') or k.endswith('_mask') or k == 'features'}
             labels = batch['labels'].to(device)
             optimizer.zero_grad()
             outputs = model(**inputs)
@@ -39,7 +33,7 @@ def train_model(model, criteria, optimizer, scheduler, train_loader, val_loader,
             for i in range(4):
                 weighted_loss = criteria[i](outputs[:, i], labels[:, i])
                 # weighted_loss *= label_weights[:, i]
-                final_loss = weighted_loss * 0.25 #* task_weights[i]  # Apply task-specific weight
+                final_loss = weighted_loss * task_weights[i]  # Apply task-specific weight
                 losses.append(final_loss)
                 running_losses[i] += final_loss.item() * labels.size(0)  # Correct usage of .item()
                 total_weights[i] += label_weights[:, i].sum().item()
@@ -47,11 +41,7 @@ def train_model(model, criteria, optimizer, scheduler, train_loader, val_loader,
             loss = sum(losses)
             loss.backward()
             optimizer.step()
-
-        # Update past losses with the average of current epoch losses
-        for i in range(4):
-            past_losses[i].append(np.mean(current_epoch_losses[i]))
-
+        
         if scheduler:
             scheduler.step()
 
