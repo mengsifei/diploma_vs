@@ -50,14 +50,49 @@ class TraitAttention(nn.Module):
 
     
 
+# class ELECTRA(nn.Module):
+#     def __init__(self, hidden_size=256, num_features=4, drop_rate=0.1):
+#         super(ELECTRA, self).__init__()
+#         self.electra = ElectraModel.from_pretrained('google/electra-small-discriminator')
+#         # self.soft_attention = AttentionPooling(hidden_dim=hidden_size)
+#         self.meanpooling = MeanPooling()
+#         self.drop_rate = drop_rate
+#         self.trait_attention = TraitAttention(hidden_size + num_features, hidden_size)
+
+#         # Task-specific heads after trait-attention mechanism
+#         self.task_response_head = nn.Linear(hidden_size + num_features, 1)
+#         self.coherence_head = nn.Linear(hidden_size + num_features, 1)
+#         self.lexical_resource_head = nn.Linear(hidden_size + num_features, 1)
+#         self.grammatical_range_head = nn.Linear(hidden_size + num_features, 1)
+        
+#     def forward(self, input_ids, attention_mask, token_type_ids, features):
+#         outputs = self.electra(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids)
+#         sequence_output = outputs.last_hidden_state
+#         pooled_output = self.meanpooling(sequence_output, attention_mask)
+#         combined_features = torch.cat((pooled_output, features), dim=1)
+#         trait_attended_features = self.trait_attention(combined_features, combined_features)
+        
+#         task_response_output = self.task_response_head((trait_attended_features))
+#         coherence_output = self.coherence_head((trait_attended_features))
+#         lexical_resource_output = self.lexical_resource_head((trait_attended_features))
+#         grammatical_range_output = self.grammatical_range_head((trait_attended_features))
+        
+#         # Concatenate the outputs for each task
+#         final_output = torch.cat((task_response_output,
+#                                   coherence_output,
+#                                   lexical_resource_output,
+#                                   grammatical_range_output), dim=-1)
+        
+#         return final_output
+
+
 class ELECTRA(nn.Module):
     def __init__(self, hidden_size=256, num_features=4, drop_rate=0.1):
         super(ELECTRA, self).__init__()
         self.electra = ElectraModel.from_pretrained('google/electra-small-discriminator')
-        # self.soft_attention = AttentionPooling(hidden_dim=hidden_size)
         self.meanpooling = MeanPooling()
         self.drop_rate = drop_rate
-        self.trait_attention = TraitAttention(hidden_size + num_features)
+        self.trait_attention = TraitAttention(hidden_size, hidden_size)  # Attention based on Electra's hidden size
 
         # Task-specific heads after trait-attention mechanism
         self.task_response_head = nn.Linear(hidden_size + num_features, 1)
@@ -66,16 +101,25 @@ class ELECTRA(nn.Module):
         self.grammatical_range_head = nn.Linear(hidden_size + num_features, 1)
         
     def forward(self, input_ids, attention_mask, token_type_ids, features):
+        # Get outputs from Electra
         outputs = self.electra(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids)
         sequence_output = outputs.last_hidden_state
-        pooled_output = self.meanpooling(sequence_output, attention_mask)
-        combined_features = torch.cat((pooled_output, features), dim=1)
-        trait_attended_features = self.trait_attention(combined_features, combined_features)
         
-        task_response_output = self.task_response_head((trait_attended_features))
-        coherence_output = self.coherence_head((trait_attended_features))
-        lexical_resource_output = self.lexical_resource_head((trait_attended_features))
-        grammatical_range_output = self.grammatical_range_head((trait_attended_features))
+        # Apply mean pooling to sequence output
+        pooled_output = self.meanpooling(sequence_output, attention_mask)
+        
+        # Apply trait attention mechanism
+        # Assuming that 'features' is a [batch_size, num_features] tensor representing the handcrafted features
+        trait_attended_features = self.trait_attention(pooled_output, features.unsqueeze(1))
+
+        # Concatenate attended features with original pooled output
+        enriched_features = torch.cat((trait_attended_features, features), dim=1)
+
+        # Pass through task-specific heads
+        task_response_output = self.task_response_head(enriched_features)
+        coherence_output = self.coherence_head(enriched_features)
+        lexical_resource_output = self.lexical_resource_head(enriched_features)
+        grammatical_range_output = self.grammatical_range_head(enriched_features)
         
         # Concatenate the outputs for each task
         final_output = torch.cat((task_response_output,
@@ -84,7 +128,6 @@ class ELECTRA(nn.Module):
                                   grammatical_range_output), dim=-1)
         
         return final_output
-
 
 from torch.nn import LayerNorm
 import math

@@ -2,6 +2,8 @@ import torch
 import numpy as np
 import re
 from collections import Counter
+import nltk
+nltk.download('stopwords')
 from nltk.corpus import stopwords
 
 class CustomDataset(torch.utils.data.Dataset):
