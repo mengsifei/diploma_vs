@@ -38,8 +38,8 @@ def train_model(model, criteria, optimizer, scheduler, train_loader, val_loader,
             losses = []
             for i in range(4):
                 weighted_loss = criteria[i](outputs[:, i], labels[:, i])
-                weighted_loss *= label_weights[:, i]
-                final_loss = weighted_loss.mean() * 0.25 #* task_weights[i]  # Apply task-specific weight
+                # weighted_loss *= label_weights[:, i]
+                final_loss = weighted_loss * 0.25 #* task_weights[i]  # Apply task-specific weight
                 losses.append(final_loss)
                 running_losses[i] += final_loss.item() * labels.size(0)  # Correct usage of .item()
                 total_weights[i] += label_weights[:, i].sum().item()
