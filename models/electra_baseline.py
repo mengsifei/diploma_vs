@@ -101,28 +101,33 @@ class ELECTRA(nn.Module):
         self.grammatical_range_head = nn.Linear(hidden_size + num_features, 1)
         
     def forward(self, input_ids, attention_mask, token_type_ids, features):
-        # Get outputs from Electra
+        # Outputs from ElectraModel
         outputs = self.electra(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids)
         sequence_output = outputs.last_hidden_state
         
-        # Apply mean pooling to sequence output
+        # # Convert attention mask to boolean
+        # bool_attention_mask = attention_mask.bool()
+
+        # Apply mean pooling to get a single vector per input sequence
         pooled_output = self.meanpooling(sequence_output, attention_mask)
-        combined_features = torch.cat([pooled_output, features], dim=1)
+        
+        # Concatenate pooled Electra output with handcrafted features
+        combined_features = torch.cat((pooled_output, features), dim=1)
+        
+        # Apply trait attention mechanism
         trait_attended_features = self.trait_attention(combined_features)
 
-        
-        # Pass through task-specific heads
+        # Task-specific heads
         task_response_output = self.task_response_head(trait_attended_features)
         coherence_output = self.coherence_head(trait_attended_features)
         lexical_resource_output = self.lexical_resource_head(trait_attended_features)
         grammatical_range_output = self.grammatical_range_head(trait_attended_features)
         
-        # Concatenate the outputs for each task
+        # Concatenate outputs for each task
         final_output = torch.cat((task_response_output,
                                   coherence_output,
                                   lexical_resource_output,
-                                  grammatical_range_output), dim=-1)
-        
+                                  grammatical_range_output), dim=1)
         return final_output
 
 from torch.nn import LayerNorm

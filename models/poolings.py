@@ -14,24 +14,45 @@ class MeanPooling(nn.Module):
         return mean_embeddings
 
 
+# class AttentionPooling(nn.Module):
+#     def __init__(self, hidden_dim):
+#         super(AttentionPooling, self).__init__()
+#         self.hidden_dim = hidden_dim
+#         self.w = nn.Linear(self.hidden_dim, self.hidden_dim)
+#         self.v = nn.Linear(self.hidden_dim, 1)
+
+#     def forward(self, h):
+#         w = torch.tanh(self.w(h))
+#         weight = self.v(w)
+#         # weight = weight.squeeze(dim=-1)
+#         weight = torch.softmax(weight, dim=1)
+#         # weight = weight.unsqueeze(dim=-1)
+#         weight_broadcasted = weight.repeat(1, h.size(1))
+#         # print(weight_broadcasted.shape)
+#         # print(h.shape)
+#         out = torch.mul(h, weight_broadcasted)
+#         print(out.shape)
+#         out = torch.sum(out, dim=0)
+#         print(out.shape)
+#         return out
+
 class AttentionPooling(nn.Module):
     def __init__(self, hidden_dim):
         super(AttentionPooling, self).__init__()
-        self.hidden_dim = hidden_dim
-        self.w = nn.Linear(self.hidden_dim, self.hidden_dim)
-        self.v = nn.Linear(self.hidden_dim, 1)
+        self.w = nn.Linear(hidden_dim, hidden_dim)
+        self.v = nn.Linear(hidden_dim, 1)
 
     def forward(self, h):
-        w = torch.tanh(self.w(h))
-        weight = self.v(w)
-        # weight = weight.squeeze(dim=-1)
-        weight = torch.softmax(weight, dim=1)
-        # weight = weight.unsqueeze(dim=-1)
-        weight_broadcasted = weight.repeat(1, h.size(1))
-        # print(weight_broadcasted.shape)
-        # print(h.shape)
-        out = torch.mul(h, weight_broadcasted)
-        print(out.shape)
-        out = torch.sum(out, dim=0)
-        print(out.shape)
+        # Compute the attention scores
+        attn_scores = self.v(torch.tanh(self.w(h)))
+        
+        # Compute the attention weights using softmax
+        attn_weights = F.softmax(attn_scores, dim=1)
+        
+        # Apply the attention weights
+        attn_applied = h * attn_weights
+        
+        # Sum the weighted features
+        out = attn_applied.sum(1)
+        
         return out
