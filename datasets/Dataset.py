@@ -31,22 +31,26 @@ class CustomDataset(torch.utils.data.Dataset):
             weights[criterion] /= weights[criterion].mean()   # Normalize
         return weights
 
+    def min_max_normalize(self, features, feature_min, feature_max):
+        return (features - feature_min) / (feature_max - feature_min)
+    def z_score_normalize(self, features, mean, std):
+        return (features - mean) / std
 
     def calculate_features(self, text):
-        # Pre-compile regex patterns
         word_pattern = re.compile(r'\w+')
         paragraph_pattern = re.compile(r'\n')
         sentence_pattern = re.compile(r'(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?)\s')
-        # Efficiently tokenize and process text
         words = word_pattern.findall(text)
         num_words = len(words)
         num_paragraphs = len(paragraph_pattern.findall(text)) + 1
         num_sentences = len(sentence_pattern.findall(text)) + 1
-        # Non-stop words that appear more than 5 times
         stop_words = set(stopwords.words('english'))
         word_counts = Counter(word.lower() for word in words if word.lower() not in stop_words)
         frequent_words = sum(1 for _, count in word_counts.items() if count > 3)
-        return np.array([num_words, num_paragraphs, frequent_words, num_sentences], dtype=np.float32)
+        
+        features = np.array([num_words, num_paragraphs, frequent_words, num_sentences], dtype=np.float32)
+        # normalized_features = self.z_score_normalize(features, self.feature_min, self.feature_max)
+        return features
 
     def __getitem__(self, index):
         text = self.text[index]

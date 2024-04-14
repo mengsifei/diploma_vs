@@ -1,6 +1,7 @@
 import torch.nn as nn
 import torch
 import torch.nn.functional as F
+import math
 
 class MeanPooling(nn.Module):
     def __init__(self):
@@ -37,21 +38,34 @@ class MeanPooling(nn.Module):
 #         print(out.shape)
 #         return out
 
-class AttentionPooling(nn.Module):
-    def __init__(self, input_dim, output_dim):
-        super(AttentionPooling, self).__init__()
-        self.w = nn.Linear(input_dim, output_dim)
-        self.v = nn.Linear(output_dim, 1)
+class SelfAttention(nn.Module):
+    def __init__(self, feature_dim, attention_heads=1):
+        super(SelfAttention, self).__init__()
+        self.feature_dim = feature_dim
+        self.attention_heads = attention_heads
+        self.key = nn.Linear(feature_dim, feature_dim * attention_heads)
+        self.query = nn.Linear(feature_dim, feature_dim * attention_heads)
+        self.value = nn.Linear(feature_dim, feature_dim * attention_heads)
 
-    def forward(self, h):
-        # Compute transformed features
-        transformed_h = torch.tanh(self.w(h))  # Size: [batch_size, seq_len, output_dim]
-        # Compute attention scores
-        attn_scores = self.v(transformed_h).squeeze(-1)  # Size: [batch_size, seq_len]
-        # Apply softmax to get attention weights
-        attn_weights = F.softmax(attn_scores, dim=1).unsqueeze(-1)  # Size: [batch_size, seq_len, 1]
-        # Apply attention weights
-        weighted_h = h * attn_weights  # Size: [batch_size, seq_len, input_dim]
-        # Sum over the sequence dimension to get weighted feature sum
-        attended_h = weighted_h.sum(dim=1)  # Size: [batch_size, input_dim]
-        return attended_h
+    def forward(self, x):
+        batch_size = x.size(0)
+
+        # Calculate queries, keys, values
+        keys = self.key(x).view(batch_size, -1, self.attention_heads, self.feature_dim).transpose(1, 2)
+        queries = self.query(x).view(batch_size, -1, self.attention_heads, self.feature_dim).transpose(1, 2)
+        values = self.value(x).view(batch_size, -1, self.attention_heads, self.feature_dim).transpose(1, 2)
+
+        # Attention mechanism
+        attention_scores = torch.matmul(queries, keys.transpose(-2, -1)) / math.sqrt(self.feature_dim)
+        attention_weights = F.softmax(attention_scores, dim=-1)
+
+        # Apply attention weights to values
+        weighted_sum = torch.matmul(attention_weights, values)
+        weighted_sum = weighted_sum.transpose(1, 2).contiguous().view(batch_size, -1, self.feature_dim * self.attention_heads)
+
+        # Optionally, project back to the original feature dimension (useful if attention_heads > 1)
+        if self.attention_heads > 1:
+            weighted_sum = weighted_sum.view(batch_size, -1, self.feature_dim * self.attention_heads)
+            weighted_sum = weighted_sum.sum(dim=2).view(batch_size, self.feature_dim)
+        
+        return weighted_sum.sum(dim=1)
