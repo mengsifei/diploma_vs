@@ -67,7 +67,7 @@ def test(best_model, tokenizer, test_df, device, is_dual, prompt_id=1, essay_id=
     right_essay = test_df.iloc[prompt_id].essay
     swapped_essay = test_df.iloc[essay_id].essay
     print("++++++++++++++++++++++++++++")
-    print("CASE_0: Wihtout edition")
+    print("CASE_0: Without edition")
     print("RUBRIC SCORE FOR THE ESSAY")
     print(test_df.iloc[prompt_id][rubrics])
     print(score_essay(topic, right_essay, tokenizer, best_model, device))
@@ -83,17 +83,19 @@ def test(best_model, tokenizer, test_df, device, is_dual, prompt_id=1, essay_id=
     print("CASE_2: Totally Off topic")
     print("Prompt:", topic)
     print("New prompt:", test_df.iloc[essay_id].prompt)
+    print("Swapped essay's rubrics scores")
+    print(test_df.iloc[essay_id][rubrics])
     print(score_essay(topic, swapped_essay, tokenizer, best_model, device))
 
 
-    print("++++++++++++++++++++++++++++")
-    print("CASE_3: Partially Off topic")
-    partially_essay = test_df.iloc[20].essay
-    print("RUBRIC SCORE FOR THE NEW ESSAY")
-    print(test_df.iloc[20][rubrics])
-    print("Old prompt:", topic)
-    print("New prompt:", test_df.iloc[20].prompt)
-    print(score_essay(topic, partially_essay, tokenizer, best_model, device))
+    # print("++++++++++++++++++++++++++++")
+    # print("CASE_3: Partially Off topic")
+    # partially_essay = test_df.iloc[20].essay
+    # print("RUBRIC SCORE FOR THE NEW ESSAY")
+    # print(test_df.iloc[20][rubrics])
+    # print("Old prompt:", topic)
+    # print("New prompt:", test_df.iloc[20].prompt)
+    # print(score_essay(topic, partially_essay, tokenizer, best_model, device))
 
 
     print("++++++++++++++++++++++++++++")
