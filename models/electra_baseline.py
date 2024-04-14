@@ -92,7 +92,7 @@ class ELECTRA(nn.Module):
         self.electra = ElectraModel.from_pretrained('google/electra-small-discriminator')
         self.meanpooling = MeanPooling()
         self.drop_rate = drop_rate
-        self.trait_attention = TraitAttention(hidden_size, hidden_size)  # Attention based on Electra's hidden size
+        self.trait_attention = AttentionPooling(hidden_size + num_features)  # Attention based on Electra's hidden size
 
         # Task-specific heads after trait-attention mechanism
         self.task_response_head = nn.Linear(hidden_size + num_features, 1)
@@ -107,19 +107,15 @@ class ELECTRA(nn.Module):
         
         # Apply mean pooling to sequence output
         pooled_output = self.meanpooling(sequence_output, attention_mask)
+        combined_features = torch.cat([pooled_output, features], dim=1)
+        trait_attended_features = self.trait_attention(combined_features)
+
         
-        # Apply trait attention mechanism
-        # Assuming that 'features' is a [batch_size, num_features] tensor representing the handcrafted features
-        trait_attended_features = self.trait_attention(pooled_output, features.unsqueeze(1))
-
-        # Concatenate attended features with original pooled output
-        enriched_features = torch.cat((trait_attended_features, features), dim=1)
-
         # Pass through task-specific heads
-        task_response_output = self.task_response_head(enriched_features)
-        coherence_output = self.coherence_head(enriched_features)
-        lexical_resource_output = self.lexical_resource_head(enriched_features)
-        grammatical_range_output = self.grammatical_range_head(enriched_features)
+        task_response_output = self.task_response_head(trait_attended_features)
+        coherence_output = self.coherence_head(trait_attended_features)
+        lexical_resource_output = self.lexical_resource_head(trait_attended_features)
+        grammatical_range_output = self.grammatical_range_head(trait_attended_features)
         
         # Concatenate the outputs for each task
         final_output = torch.cat((task_response_output,
