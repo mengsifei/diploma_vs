@@ -1,5 +1,6 @@
 import torch.nn as nn
 import torch
+import torch.nn.functional as F
 
 class MeanPooling(nn.Module):
     def __init__(self):
@@ -37,22 +38,20 @@ class MeanPooling(nn.Module):
 #         return out
 
 class AttentionPooling(nn.Module):
-    def __init__(self, hidden_dim):
+    def __init__(self, input_dim, output_dim):
         super(AttentionPooling, self).__init__()
-        self.w = nn.Linear(hidden_dim, hidden_dim)
-        self.v = nn.Linear(hidden_dim, 1)
+        self.w = nn.Linear(input_dim, output_dim)
+        self.v = nn.Linear(output_dim, 1)
 
     def forward(self, h):
-        # Compute the attention scores
-        attn_scores = self.v(torch.tanh(self.w(h)))
-        
-        # Compute the attention weights using softmax
-        attn_weights = F.softmax(attn_scores, dim=1)
-        
-        # Apply the attention weights
-        attn_applied = h * attn_weights
-        
-        # Sum the weighted features
-        out = attn_applied.sum(1)
-        
-        return out
+        # Compute transformed features
+        transformed_h = torch.tanh(self.w(h))  # Size: [batch_size, seq_len, output_dim]
+        # Compute attention scores
+        attn_scores = self.v(transformed_h).squeeze(-1)  # Size: [batch_size, seq_len]
+        # Apply softmax to get attention weights
+        attn_weights = F.softmax(attn_scores, dim=1).unsqueeze(-1)  # Size: [batch_size, seq_len, 1]
+        # Apply attention weights
+        weighted_h = h * attn_weights  # Size: [batch_size, seq_len, input_dim]
+        # Sum over the sequence dimension to get weighted feature sum
+        attended_h = weighted_h.sum(dim=1)  # Size: [batch_size, input_dim]
+        return attended_h
