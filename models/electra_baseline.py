@@ -22,18 +22,32 @@ import torch.nn as nn
 
 
 class TraitAttention(nn.Module):
-    def __init__(self, input_dim):
-        super().__init__()
-        self.weight = nn.Parameter(torch.Tensor(input_dim))
-        nn.init.uniform_(self.weight)
+    def __init__(self, input_dim, attention_dim):
+        super(TraitAttention, self).__init__()
+        self.attention_score = nn.Linear(input_dim, attention_dim)
+        self.attention_weight = nn.Linear(attention_dim, 1, bias=False)
+    
+    def forward(self, c, A):
+        # Assuming c is [batch_size, feature_size]
+        # and A is [batch_size, sequence_length, feature_size]
+        # where feature_size corresponds to input_dim
+        e = torch.tanh(self.attention_score(c))  # [batch_size, attention_dim]
+        scores = self.attention_weight(e)  # [batch_size, 1]
+        
+        # Repeat scores across the sequence_length dimension
+        scores = scores.unsqueeze(1).repeat(1, A.size(1), 1)  # [batch_size, sequence_length, 1]
+        
+        # Apply softmax to get the attention weights
+        attention_weights = F.softmax(scores, dim=1)  # [batch_size, sequence_length, 1]
+        
+        # Apply attention weights to A
+        p = torch.bmm(attention_weights.transpose(1, 2), A)  # [batch_size, 1, feature_size]
+        p = p.squeeze(1)  # Remove the singleton dimension
+        
+        # Concatenate c and p to get the final representation g
+        g = torch.cat((c, p), dim=1)  # [batch_size, feature_size * 2]
+        return g
 
-    def forward(self, trait_specific, non_trait_specific):
-        # trait_specific: (batch_size, input_dim)
-        # non_trait_specific: (batch_size, input_dim)
-        scores = torch.matmul(non_trait_specific, trait_specific.t())
-        weights = F.softmax(scores, dim=-1)
-        weighted_features = trait_specific * weights
-        return torch.cat((weighted_features, non_trait_specific), dim=1)
     
 
 class ELECTRA(nn.Module):

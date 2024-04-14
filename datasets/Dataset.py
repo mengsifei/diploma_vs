@@ -30,7 +30,7 @@ class CustomDataset(torch.utils.data.Dataset):
         return weights
 
 
-    def calculate_features(text):
+    def calculate_features(self, text):
         # Pre-compile regex patterns
         word_pattern = re.compile(r'\w+')
         paragraph_pattern = re.compile(r'\n')
