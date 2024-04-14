@@ -24,9 +24,14 @@ class AttentionPooling(nn.Module):
     def forward(self, h):
         w = torch.tanh(self.w(h))
         weight = self.v(w)
-        weight = weight.squeeze(dim=-1)
+        # weight = weight.squeeze(dim=-1)
         weight = torch.softmax(weight, dim=1)
-        weight = weight.unsqueeze(dim=-1)
-        out = torch.mul(h, weight.repeat(1, 1, h.size(2)))
-        out = torch.sum(out, dim=1)
+        # weight = weight.unsqueeze(dim=-1)
+        weight_broadcasted = weight.repeat(1, h.size(1))
+        # print(weight_broadcasted.shape)
+        # print(h.shape)
+        out = torch.mul(h, weight_broadcasted)
+        print(out.shape)
+        out = torch.sum(out, dim=0)
+        print(out.shape)
         return out
