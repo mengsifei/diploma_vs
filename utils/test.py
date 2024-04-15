@@ -6,27 +6,32 @@ from collections import Counter
 import nltk
 nltk.download('stopwords')
 from nltk.corpus import stopwords
-
+def z_score_normalize(features, mean, std):
+        return (features - mean) / std
 
 def calculate_features(text):
-        word_pattern = re.compile(r'\w+')
+        # word_pattern = re.compile(r'\w+')
         paragraph_pattern = re.compile(r'\n')
-        sentence_pattern = re.compile(r'(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?)\s')
-        words = word_pattern.findall(text)
-        num_words = len(words)
+        # sentence_pattern = re.compile(r'(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?)\s')
+        # words = word_pattern.findall(text)
+        # num_words = len(words)
         num_paragraphs = len(paragraph_pattern.findall(text)) + 1
-        num_sentences = len(sentence_pattern.findall(text)) + 1
-        stop_words = set(stopwords.words('english'))
-        word_counts = Counter(word.lower() for word in words if word.lower() not in stop_words)
-        frequent_words = sum(1 for _, count in word_counts.items() if count > 3)
+        # num_sentences = len(sentence_pattern.findall(text)) + 1
+        # stop_words = set(stopwords.words('english'))
+        # word_counts = Counter(word.lower() for word in words if word.lower() not in stop_words)
+        # frequent_words = sum(1 for _, count in word_counts.items() if count > 3)
         
-        features = np.array([num_words, num_paragraphs, frequent_words, num_sentences], dtype=np.float32)
-        # normalized_features = self.z_score_normalize(features, self.feature_min, self.feature_max)
-        return features
+        features = np.array([num_paragraphs], dtype=np.float32)
+        # print("features")
+        # print(features)
+        # mean_features = np.mean(features)
+        # std_features = np.std(features)
+        # normalized_features = z_score_normalize(features, mean_features, std_features)
+        return 1 / features
 
 def score_essay_vanilla(topic, essay, tokenizer, model, device):
     features = calculate_features(essay)
-    essay = essay.replace("\n", f" [SEP][SEP] ")
+    essay = essay.replace("\n", f"[SEP]")
     combined_text = f"[TOPIC] {topic} [TOPIC] {topic} [ESSAY] {essay}"
     inputs = tokenizer.encode_plus(    
         combined_text,

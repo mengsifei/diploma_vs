@@ -95,10 +95,10 @@ class ELECTRA(nn.Module):
         self.attention = SelfAttention(hidden_size + num_features)
 
         # Define task-specific heads
-        self.task_response_head = nn.Linear(hidden_size + num_features, 1)
+        self.task_response_head = nn.Linear(hidden_size, 1)
         self.coherence_head = nn.Linear(hidden_size + num_features, 1)
-        self.lexical_resource_head = nn.Linear(hidden_size + num_features, 1)
-        self.grammatical_range_head = nn.Linear(hidden_size + num_features, 1)
+        self.lexical_resource_head = nn.Linear(hidden_size, 1)
+        self.grammatical_range_head = nn.Linear(hidden_size, 1)
 
     def forward(self, input_ids, attention_mask, token_type_ids, features):
         outputs = self.electra(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids)
@@ -106,7 +106,9 @@ class ELECTRA(nn.Module):
         
         # Apply mean pooling to get a single vector per input sequence
         pooled_output = self.meanpooling(sequence_output, attention_mask)
-        
+        # print(pooled_output.shape)
+        # print(features.shape)
+        # print(pooled_output.mean())
         # Concatenate pooled Electra output with handcrafted features
         combined_features = torch.cat([pooled_output, features], dim=1)
         
@@ -114,10 +116,10 @@ class ELECTRA(nn.Module):
         attention_output = self.attention(combined_features)
 
         # Pass through task-specific heads
-        task_response_output = self.task_response_head(attention_output)
+        task_response_output = self.task_response_head(pooled_output)
         coherence_output = self.coherence_head(attention_output)
-        lexical_resource_output = self.lexical_resource_head(attention_output)
-        grammatical_range_output = self.grammatical_range_head(attention_output)
+        lexical_resource_output = self.lexical_resource_head(pooled_output)
+        grammatical_range_output = self.grammatical_range_head(pooled_output)
         
         # Concatenate the outputs for each task
         final_output = torch.cat((task_response_output,
