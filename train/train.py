@@ -24,7 +24,7 @@ def train_model(model, criteria, optimizer, scheduler, train_loader, val_loader,
         task_weights = [0.25] * 4
 
         for batch in train_loader:
-            inputs = {k: v.to(device) for k, v in batch.items() if k.endswith('_ids') or k.endswith('_mask') or k == 'features'}
+            inputs = {k: v.to(device) for k, v in batch.items() if k.endswith('_ids') or k.endswith('_mask')}
             labels = batch['labels'].to(device)
             optimizer.zero_grad()
             outputs = model(**inputs)

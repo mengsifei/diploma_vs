@@ -12,7 +12,7 @@ def evaluate_model(model, loader, criteria, is_dual_version, device):
 
     with torch.no_grad():
         for batch in loader:
-            inputs = {k: v.to(device) for k, v in batch.items() if k.endswith('_ids') or k.endswith('_mask') or k == 'features'}
+            inputs = {k: v.to(device) for k, v in batch.items() if k.endswith('_ids') or k.endswith('_mask')}
             labels = batch['labels'].to(device)
             outputs = model(**inputs)
             label_weights = batch['label_weights'].to(device).squeeze(1)

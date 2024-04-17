@@ -45,7 +45,7 @@ def score_essay_vanilla(topic, essay, tokenizer, model, device):
         return_tensors='pt'
     )
     inputs = {k: v.to(device) for k, v in inputs.items()}
-    inputs['features'] = torch.from_numpy(features).to(device).unsqueeze(0)
+    # inputs['features'] = torch.from_numpy(features).to(device).unsqueeze(0)
     with torch.no_grad():
         outputs = model(**inputs)
         outputs = outputs.cpu().numpy()[0]

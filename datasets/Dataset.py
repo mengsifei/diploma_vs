@@ -11,7 +11,7 @@ class CustomDataset(torch.utils.data.Dataset):
         self.tokenizer = tokenizer
         self.df = df
         self.text = df['essay']
-        self.topic = df['topic']
+        self.prompt = df['prompt']
         self.labels = df[['Task Response', 'Coherence and Cohesion',
                           'Lexical Resource', 'Grammatical Range and Accuracy']].values
         self.max_len = max_len
@@ -57,8 +57,8 @@ class CustomDataset(torch.utils.data.Dataset):
         text = self.text[index]
         features = self.calculate_features(text)
         text = text.replace("\n", f"[SEP]")
-        topic = self.topic[index]
-        combined_text = f"[TOPIC] {topic} [TOPIC] {topic} [ESSAY] {text}"
+        prompt = self.prompt[index]
+        combined_text = f"[prompt] {prompt} [prompt] {prompt} [ESSAY] {text}"
         inputs = self.tokenizer.encode_plus(    
             combined_text,
             None,
@@ -91,7 +91,7 @@ class CustomDatasetSegment(torch.utils.data.Dataset):
         self.tokenizer = tokenizer
         self.df = df
         self.text = df['essay']
-        self.topic = df['topic']
+        self.prompt = df['prompt']
         self.labels = self.df[['Task Response', 'Coherence and Cohesion',
        'Lexical Resource', 'Grammatical Range and Accuracy']].values
         self.max_len = max_len
@@ -101,9 +101,9 @@ class CustomDatasetSegment(torch.utils.data.Dataset):
 
     def __getitem__(self, index):
         text = self.text[index]
-        topic = self.topic[index]
+        prompt = self.prompt[index]
         inputs = self.tokenizer.encode_plus(
-            [topic.replace('\n', ''), text.replace("\n", f" [SEP][SEP] ")],
+            [prompt.replace('\n', ''), text.replace("\n", f" [SEP][SEP] ")],
             None,
             add_special_tokens=True,
             max_length=self.max_len,
@@ -126,7 +126,7 @@ class CustomDatasetDual(torch.utils.data.Dataset):
         self.tokenizer = tokenizer
         self.df = df
         self.essays = df['essay']
-        self.topics = df['topic']
+        self.prompts = df['prompt']
         self.labels = df[['Task Response', 'Coherence and Cohesion', 'Lexical Resource', 'Grammatical Range and Accuracy']].values
         self.max_len = max_len
 
@@ -135,7 +135,7 @@ class CustomDatasetDual(torch.utils.data.Dataset):
 
     def __getitem__(self, index):
         essay_text = self.essays[index]
-        topic_text = self.topics[index]
+        prompt_text = self.prompts[index]
         essay_text = essay_text.replace("\n", f" [SEP] ")
         essay_inputs = self.tokenizer(
             essay_text,
@@ -145,8 +145,8 @@ class CustomDatasetDual(torch.utils.data.Dataset):
             return_tensors='pt'
         )
         
-        topic_inputs = self.tokenizer(
-            topic_text,
+        prompt_inputs = self.tokenizer(
+            prompt_text,
             max_length=60,
             padding='max_length',
             truncation=True,
@@ -156,8 +156,8 @@ class CustomDatasetDual(torch.utils.data.Dataset):
         return {
             'essay_input_ids': essay_inputs['input_ids'].flatten(),
             'essay_attention_mask': essay_inputs['attention_mask'].flatten(),
-            'topic_input_ids': topic_inputs['input_ids'].flatten(),
-            'topic_attention_mask': topic_inputs['attention_mask'].flatten(),
+            'prompt_input_ids': prompt_inputs['input_ids'].flatten(),
+            'prompt_attention_mask': prompt_inputs['attention_mask'].flatten(),
             'labels': torch.FloatTensor(self.labels[index])
         }
     
