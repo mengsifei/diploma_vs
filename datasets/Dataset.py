@@ -11,7 +11,7 @@ class CustomDataset(torch.utils.data.Dataset):
         self.tokenizer = tokenizer
         self.df = df
         self.text = df['essay']
-        self.topic = df['prompt']
+        self.topic = df['topic']
         self.labels = df[['Task Response', 'Coherence and Cohesion',
                           'Lexical Resource', 'Grammatical Range and Accuracy']].values
         self.max_len = max_len
@@ -91,7 +91,7 @@ class CustomDatasetSegment(torch.utils.data.Dataset):
         self.tokenizer = tokenizer
         self.df = df
         self.text = df['essay']
-        self.topic = df['prompt']
+        self.topic = df['topic']
         self.labels = self.df[['Task Response', 'Coherence and Cohesion',
        'Lexical Resource', 'Grammatical Range and Accuracy']].values
         self.max_len = max_len
@@ -126,7 +126,7 @@ class CustomDatasetDual(torch.utils.data.Dataset):
         self.tokenizer = tokenizer
         self.df = df
         self.essays = df['essay']
-        self.topics = df['prompt']
+        self.topics = df['topic']
         self.labels = df[['Task Response', 'Coherence and Cohesion', 'Lexical Resource', 'Grammatical Range and Accuracy']].values
         self.max_len = max_len
 
