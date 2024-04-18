@@ -2,13 +2,13 @@ import torch
 import numpy as np
 from sklearn.metrics import mean_absolute_error, cohen_kappa_score
 
-def evaluate_model(model, loader, criteria, is_dual_version, device):
+def evaluate_model(model, loader, criteria, device, rubrics):
     model.eval()
-    running_losses = [0.0] * 4
-    task_weights = [0.25] * 4
+    running_losses = [0.0] * 2
+    task_weights = [0.5] * 2
     all_preds = []
     all_targets = []
-    total_samples = [0] * 4  # This will store the total samples processed per task
+    total_samples = [0] * 2  # This will store the total samples processed per task
 
     with torch.no_grad():
         for batch in loader:
@@ -21,7 +21,7 @@ def evaluate_model(model, loader, criteria, is_dual_version, device):
             all_targets.append(labels_np)
 
             batch_size = labels.size(0)
-            for i in range(4):
+            for i in range(len(rubrics)):
                 weighted_loss = criteria[i](outputs[:, i], labels[:, i])
                 final_loss = weighted_loss * task_weights[i]
                 running_losses[i] += final_loss.item() * batch_size
@@ -30,8 +30,8 @@ def evaluate_model(model, loader, criteria, is_dual_version, device):
         all_preds = np.vstack(all_preds)
         all_targets = np.vstack(all_targets)
 
-        kappas = [cohen_kappa_score(np.round(all_targets[:, i]).astype(int), np.round(all_preds[:, i]).astype(int), weights='quadratic') for i in range(4)]
-        maes = [mean_absolute_error(all_targets[:, i], all_preds[:, i]) for i in range(4)]
+        kappas = [cohen_kappa_score(np.round(all_targets[:, i]).astype(int), np.round(all_preds[:, i]).astype(int), weights='quadratic') for i in range(len(rubrics))]
+        maes = [mean_absolute_error(all_targets[:, i], all_preds[:, i]) for i in range(len(rubrics))]
         
         avg_mse_losses = [running_loss / total_sample for running_loss, total_sample in zip(running_losses, total_samples)]
 

@@ -3,6 +3,7 @@ import numpy as np
 import torch
 import gc
 from sklearn.metrics import mean_absolute_error, cohen_kappa_score
+from train.evaluate import *
 
 def train_model(model, criteria, optimizer, scheduler, train_loader, val_loader, device, additional_info, epochs=10, early_stop=5, rubrics=['tr', 'cc']):
     best_val_loss = {rubric: np.inf for rubric in rubrics}
@@ -30,7 +31,7 @@ def train_model(model, criteria, optimizer, scheduler, train_loader, val_loader,
             labels = batch['labels'].to(device)
             optimizer.zero_grad()
             outputs = model(**inputs)
-            loss = sum(criteria[i](outputs[:, i], labels[:, i]) for i in range(len(rubrics)))
+            loss = sum(criteria[i](outputs[:, i], labels[:, i]) * 0.5 for i in range(len(rubrics)))
             loss.backward()
             optimizer.step()
 
@@ -44,7 +45,7 @@ def train_model(model, criteria, optimizer, scheduler, train_loader, val_loader,
         history['train_loss'].append(avg_train_loss)
 
         # Evaluate the model
-        maes, kappas, valid_losses = evaluate_model(model, val_loader, criteria, device, num_labels=len(rubrics))
+        maes, kappas, valid_losses = evaluate_model(model, val_loader, criteria, device, rubrics)
 
         # Update history with validation metrics
         for i, rubric in enumerate(rubrics):
@@ -58,6 +59,8 @@ def train_model(model, criteria, optimizer, scheduler, train_loader, val_loader,
         history['kappa_scores_mean'].append(mean_kappa)
         history['maes_mean'].append(mean_mae)
 
+        print("Mean Validation QWK:", mean_kappa)
+        print("Mean Validation MAE:", mean_mae)
         # Save model if there is an improvement in any of the rubrics
         improved = False
         for rubric in rubrics:
