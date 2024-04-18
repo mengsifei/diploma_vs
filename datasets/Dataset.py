@@ -7,7 +7,7 @@ nltk.download('stopwords')
 from nltk.corpus import stopwords
 
 class CustomDataset(torch.utils.data.Dataset):
-    def __init__(self, df, tokenizer, max_len=512, dampening_factor=0.):
+    def __init__(self, df, tokenizer, max_len=512):
         self.tokenizer = tokenizer
         self.df = df
         self.text = df['essay']
@@ -15,27 +15,53 @@ class CustomDataset(torch.utils.data.Dataset):
         self.labels = df[['Task Response', 'Coherence and Cohesion',
                           'Lexical Resource', 'Grammatical Range and Accuracy']].values
         self.max_len = max_len
-        self.weights = self.calculate_weights(dampening_factor)
 
     def __len__(self):
         return len(self.text)
-
-    def calculate_weights(self, dampening_factor=0.0):
-        rubrics = ['Task Response', 'Coherence and Cohesion', 'Lexical Resource', 'Grammatical Range and Accuracy']
-        weights = {}
-        for criterion in rubrics:
-            value_counts = self.df[criterion].value_counts().sort_index()
-            total_counts = sum(value_counts)
-            weights[criterion] = total_counts / value_counts  # Inverse of frequency
-            weights[criterion] = (weights[criterion] ** dampening_factor)  # Dampen the effect
-            weights[criterion] /= weights[criterion].mean()   # Normalize
-        return weights
 
     def min_max_normalize(self, features, feature_min, feature_max):
         return (features - feature_min) / (feature_max - feature_min)
     def z_score_normalize(self, features, mean, std):
         return (features - mean) / std
 
+    def __getitem__(self, index):
+        text = self.text[index]
+        features = self.calculate_features(text)
+        text = text.replace("\n", f"[SEP]")
+        prompt = self.prompt[index]
+        combined_text = f"[prompt] {prompt} [ESSAY] {text}"
+        inputs = self.tokenizer.encode_plus(    
+            combined_text,
+            None,
+            add_special_tokens=True,
+            max_length=self.max_len,
+            padding='max_length',
+            return_token_type_ids=True,
+            truncation=True,
+            return_attention_mask=True,
+            return_tensors='pt'
+        )
+        return {
+            'input_ids': inputs['input_ids'].flatten(),
+            'attention_mask': inputs['attention_mask'].flatten(),
+            'token_type_ids': inputs['token_type_ids'].flatten(),
+            'labels': torch.FloatTensor(self.labels[index]),
+            'features': torch.from_numpy(features)
+        }
+    
+
+class CustomDatasetSegment(torch.utils.data.Dataset):
+    def __init__(self, df, tokenizer, max_len=512):
+        self.tokenizer = tokenizer
+        self.df = df
+        self.text = df['essay']
+        self.prompt = df['prompt']
+        self.labels = self.df[['Task Response', 'Coherence and Cohesion',
+       'Lexical Resource', 'Grammatical Range and Accuracy']].values
+        self.max_len = max_len
+
+    def __len__(self):
+        return len(self.text)
     def calculate_features(self, text):
         # word_pattern = re.compile(r'\w+')
         paragraph_pattern = re.compile(r'\n')
@@ -52,53 +78,6 @@ class CustomDataset(torch.utils.data.Dataset):
         # std_features = np.std(features)
         # normalized_features = self.z_score_normalize(features, mean_features, std_features)
         return 1 / features
-
-    def __getitem__(self, index):
-        text = self.text[index]
-        features = self.calculate_features(text)
-        text = text.replace("\n", f"[SEP]")
-        prompt = self.prompt[index]
-        combined_text = f"[prompt] {prompt} [prompt] {prompt} [ESSAY] {text}"
-        inputs = self.tokenizer.encode_plus(    
-            combined_text,
-            None,
-            add_special_tokens=True,
-            max_length=self.max_len,
-            padding='max_length',
-            return_token_type_ids=True,
-            truncation=True,
-            return_attention_mask=True,
-            return_tensors='pt'
-        )
-        label_weights = np.array([
-            self.weights['Task Response'][self.labels[index, 0]],
-            self.weights['Coherence and Cohesion'][self.labels[index, 1]],
-            self.weights['Lexical Resource'][self.labels[index, 2]],
-            self.weights['Grammatical Range and Accuracy'][self.labels[index, 3]]
-        ])
-        return {
-            'input_ids': inputs['input_ids'].flatten(),
-            'attention_mask': inputs['attention_mask'].flatten(),
-            'token_type_ids': inputs['token_type_ids'].flatten(),
-            'labels': torch.FloatTensor(self.labels[index]),
-            'features': torch.from_numpy(features),
-            'label_weights': torch.FloatTensor(label_weights)
-        }
-    
-
-class CustomDatasetSegment(torch.utils.data.Dataset):
-    def __init__(self, df, tokenizer, max_len=512):
-        self.tokenizer = tokenizer
-        self.df = df
-        self.text = df['essay']
-        self.prompt = df['prompt']
-        self.labels = self.df[['Task Response', 'Coherence and Cohesion',
-       'Lexical Resource', 'Grammatical Range and Accuracy']].values
-        self.max_len = max_len
-
-    def __len__(self):
-        return len(self.text)
-
     def __getitem__(self, index):
         text = self.text[index]
         prompt = self.prompt[index]
