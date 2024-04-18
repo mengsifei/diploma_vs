@@ -19,14 +19,8 @@ class CustomDataset(torch.utils.data.Dataset):
     def __len__(self):
         return len(self.text)
 
-    def min_max_normalize(self, features, feature_min, feature_max):
-        return (features - feature_min) / (feature_max - feature_min)
-    def z_score_normalize(self, features, mean, std):
-        return (features - mean) / std
-
     def __getitem__(self, index):
         text = self.text[index]
-        features = self.calculate_features(text)
         text = text.replace("\n", f"[SEP]")
         prompt = self.prompt[index]
         combined_text = f"[prompt] {prompt} [ESSAY] {text}"
@@ -45,8 +39,7 @@ class CustomDataset(torch.utils.data.Dataset):
             'input_ids': inputs['input_ids'].flatten(),
             'attention_mask': inputs['attention_mask'].flatten(),
             'token_type_ids': inputs['token_type_ids'].flatten(),
-            'labels': torch.FloatTensor(self.labels[index]),
-            'features': torch.from_numpy(features)
+            'labels': torch.FloatTensor(self.labels[index])
         }
     
 

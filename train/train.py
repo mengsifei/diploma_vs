@@ -5,64 +5,73 @@ from train.evaluate import evaluate_model
 import gc
 
 def train_model(model, criteria, optimizer, scheduler, train_loader, val_loader, device, additional_info, is_dual_version=False, epochs=10, early_stop=5):
-    best_val_loss = [np.inf] * 4  # Initialize best validation loss
+    best_val_loss = [np.inf] * 4  # Initialize best validation loss for each task
     best_mae = [np.inf] * 4
     best_qwk = [-np.inf] * 4
     epochs_no_improve = 0
     n_epochs_stop = early_stop
+    task_weights = [0.25] * 4
     rubrics = ['tr', 'cc', 'lr', 'gra']
     history = {'train_loss': [], 'kappa_scores_mean': [], 'maes_mean': []}
 
+    # Initialize history for each rubric
     for rubric in rubrics:
-        history.update({f'validation_loss_{rubric}': [], f'kappa_{rubric}': [], f'mae_{rubric}': []})
+        history.update({
+            f'validation_loss_{rubric}': [],
+            f'kappa_{rubric}': [],
+            f'mae_{rubric}': []
+        })
     
+    total_samples = len(train_loader.dataset)  # Total number of samples
+
     for epoch in tqdm(range(epochs), desc="Epochs"):
         model.train()
-        current_epoch_losses = [[], [], [], []]  # Temporary storage for current epoch losses
-        running_losses = [0.0] * 4
-        total_weights = [0.0] * 4
-        task_weights = [0.25] * 4
+        running_losses = [0.0] * 4  # Store sum of losses for each task
+        task_samples_count = [0] * 4  # Count samples per task if varying batch sizes
 
         for batch in train_loader:
             inputs = {k: v.to(device) for k, v in batch.items() if k.endswith('_ids') or k.endswith('_mask')}
             labels = batch['labels'].to(device)
             optimizer.zero_grad()
+
             outputs = model(**inputs)
-            label_weights = batch['label_weights'].to(device).squeeze(1)
             losses = []
+
             for i in range(4):
-                weighted_loss = criteria[i](outputs[:, i], labels[:, i])
-                # weighted_loss *= label_weights[:, i]
-                final_loss = weighted_loss * task_weights[i]  # Apply task-specific weight
+                loss = criteria[i](outputs[:, i], labels[:, i])
+                final_loss = loss * task_weights[i]  # Apply task-specific weights
                 losses.append(final_loss)
-                running_losses[i] += final_loss.item() * labels.size(0)  # Correct usage of .item()
-                total_weights[i] += label_weights[:, i].sum().item()
-                current_epoch_losses[i].append(final_loss.item())
+                running_losses[i] += final_loss.sum().item()  # Sum up weighted losses
+                task_samples_count[i] += labels.size(0)  # Assuming equal contribution from each sample
+
             loss = sum(losses)
             loss.backward()
             optimizer.step()
-        
+
         if scheduler:
             scheduler.step()
 
         torch.cuda.empty_cache()
         gc.collect()
 
-        avg_train_losses = [total_loss / total_weight if total_weight > 0 else 0 for total_loss, total_weight in zip(running_losses, total_weights)]
+        avg_train_losses = [running_loss / task_sample_count for running_loss, task_sample_count in zip(running_losses, task_samples_count)]
         history['train_loss'].append(avg_train_losses)
-        print(f"============Average MSE Loss on Training=============\n {np.round(avg_train_losses, 4)}")
+        print(f"Average MSE Loss on Training: {np.round(avg_train_losses, 4)}")
 
         maes, qwks, valid_loss = evaluate_model(model, val_loader, criteria, is_dual_version, device)
         history = update_history(history, rubrics, maes, qwks, valid_loss, epoch, epochs)
+        
         improved = False
-        if np.mean(valid_loss) < np.mean(best_val_loss) or ((np.mean(qwks) > np.mean(best_qwk)) and (np.mean(maes) < np.mean(best_mae))):
+        for i in range(4):
+            if valid_loss[i] < best_val_loss[i] or (qwks[i] > best_qwk[i] and maes[i] < best_mae[i]):
+                improved = True
+                best_val_loss[i] = valid_loss[i]
+                best_mae[i] = maes[i]
+                best_qwk[i] = qwks[i]
+
+        if improved:
             torch.save(model.state_dict(), f'checkpoints/best_model_{additional_info}.pth')
             print(f"New best model saved at epoch {epoch+1}")
-            improved = True
-            best_val_loss = valid_loss if np.mean(valid_loss) < np.mean(best_val_loss) else best_val_loss
-            best_mae = maes if np.mean(maes) < np.mean(best_mae) else best_mae
-            best_qwk = qwks if np.mean(qwks) > np.mean(best_qwk) else best_qwk
-        if improved:
             epochs_no_improve = 0
         else:
             epochs_no_improve += 1
@@ -72,6 +81,7 @@ def train_model(model, criteria, optimizer, scheduler, train_loader, val_loader,
             break
 
     return history
+
 
 def update_history(history, rubrics, maes, qwks, valid_loss, epoch, epochs):
     mae_mean = np.mean(maes)
@@ -84,4 +94,3 @@ def update_history(history, rubrics, maes, qwks, valid_loss, epoch, epochs):
     history['maes_mean'].append(mae_mean)
     print(f"Epoch {epoch+1}/{epochs}, Validation MAE: {mae_mean:.4f}, Validation QWK: {qwk_mean:.4f}")
     return history
-
