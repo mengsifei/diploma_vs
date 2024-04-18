@@ -1,17 +1,15 @@
-import numpy as np
 from tqdm import tqdm
+import numpy as np
 import torch
-from train.evaluate import evaluate_model
 import gc
+from sklearn.metrics import mean_absolute_error, cohen_kappa_score
 
-def train_model(model, criteria, optimizer, scheduler, train_loader, val_loader, device, additional_info, is_dual_version=False, epochs=10, early_stop=5):
-    best_val_loss = [np.inf] * 4  # Initialize best validation loss for each task
-    best_mae = [np.inf] * 4
-    best_qwk = [-np.inf] * 4
+def train_model(model, criteria, optimizer, scheduler, train_loader, val_loader, device, additional_info, epochs=10, early_stop=5, rubrics=['tr', 'cc']):
+    best_val_loss = {rubric: np.inf for rubric in rubrics}
+    best_mae = {rubric: np.inf for rubric in rubrics}
+    best_kappa = {rubric: -np.inf for rubric in rubrics}
     epochs_no_improve = 0
     n_epochs_stop = early_stop
-    task_weights = [0.25] * 4
-    rubrics = ['tr', 'cc', 'lr', 'gra']
     history = {'train_loss': [], 'kappa_scores_mean': [], 'maes_mean': []}
 
     # Initialize history for each rubric
@@ -22,63 +20,69 @@ def train_model(model, criteria, optimizer, scheduler, train_loader, val_loader,
             f'mae_{rubric}': []
         })
     
-    total_samples = len(train_loader.dataset)  # Total number of samples
-
     for epoch in tqdm(range(epochs), desc="Epochs"):
         model.train()
-        running_losses = [0.0] * 4  # Store sum of losses for each task
-        task_samples_count = [0] * 4  # Count samples per task if varying batch sizes
+        running_loss = 0.0
+        total_samples = 0
 
         for batch in train_loader:
-            inputs = {k: v.to(device) for k, v in batch.items() if k.endswith('_ids') or k.endswith('_mask')}
+            inputs = {k: v.to(device) for k, v in batch.items() if k != 'labels'}
             labels = batch['labels'].to(device)
             optimizer.zero_grad()
-
             outputs = model(**inputs)
-            losses = []
-
-            for i in range(4):
-                loss = criteria[i](outputs[:, i], labels[:, i])
-                final_loss = loss * task_weights[i]  # Apply task-specific weights
-                losses.append(final_loss)
-                running_losses[i] += final_loss.sum().item()  # Sum up weighted losses
-                task_samples_count[i] += labels.size(0)  # Assuming equal contribution from each sample
-
-            loss = sum(losses)
+            loss = sum(criteria[i](outputs[:, i], labels[:, i]) for i in range(len(rubrics)))
             loss.backward()
             optimizer.step()
+
+            running_loss += loss.item() * labels.size(0)
+            total_samples += labels.size(0)
 
         if scheduler:
             scheduler.step()
 
-        torch.cuda.empty_cache()
-        gc.collect()
+        avg_train_loss = running_loss / total_samples
+        history['train_loss'].append(avg_train_loss)
 
-        avg_train_losses = [running_loss / task_sample_count for running_loss, task_sample_count in zip(running_losses, task_samples_count)]
-        history['train_loss'].append(avg_train_losses)
-        print(f"Average MSE Loss on Training: {np.round(avg_train_losses, 4)}")
+        # Evaluate the model
+        maes, kappas, valid_losses = evaluate_model(model, val_loader, criteria, device, num_labels=len(rubrics))
 
-        maes, qwks, valid_loss = evaluate_model(model, val_loader, criteria, is_dual_version, device)
-        history = update_history(history, rubrics, maes, qwks, valid_loss, epoch, epochs)
-        
+        # Update history with validation metrics
+        for i, rubric in enumerate(rubrics):
+            history[f'validation_loss_{rubric}'].append(valid_losses[i])
+            history[f'kappa_{rubric}'].append(kappas[i])
+            history[f'mae_{rubric}'].append(maes[i])
+
+        # Calculate mean kappa and mean mae
+        mean_kappa = np.mean(kappas)
+        mean_mae = np.mean(maes)
+        history['kappa_scores_mean'].append(mean_kappa)
+        history['maes_mean'].append(mean_mae)
+
+        # Save model if there is an improvement in any of the rubrics
         improved = False
-        for i in range(4):
-            if valid_loss[i] < best_val_loss[i] or (qwks[i] > best_qwk[i] and maes[i] < best_mae[i]):
+        for rubric in rubrics:
+            if valid_losses[i] < best_val_loss[rubric]:
+                best_val_loss[rubric] = valid_losses[i]
                 improved = True
-                best_val_loss[i] = valid_loss[i]
-                best_mae[i] = maes[i]
-                best_qwk[i] = qwks[i]
+            if kappas[i] > best_kappa[rubric]:
+                best_kappa[rubric] = kappas[i]
+                improved = True
+            if maes[i] < best_mae[rubric]:
+                best_mae[rubric] = maes[i]
+                improved = True
 
         if improved:
             torch.save(model.state_dict(), f'checkpoints/best_model_{additional_info}.pth')
-            print(f"New best model saved at epoch {epoch+1}")
-            epochs_no_improve = 0
-        else:
-            epochs_no_improve += 1
+            print(f"Epoch {epoch+1}: New best model saved")
 
+        epochs_no_improve += 0 if improved else 1
         if epochs_no_improve >= n_epochs_stop:
-            print(f'Early stopping triggered. No improvement for {n_epochs_stop} consecutive epochs.')
+            print(f'Epoch {epoch+1}: Early stopping triggered. No improvement for {n_epochs_stop} consecutive epochs.')
             break
+
+        # Clear some memory
+        torch.cuda.empty_cache()
+        gc.collect()
 
     return history
 
