@@ -3,7 +3,7 @@ import numpy as np
 import torch
 import gc
 from sklearn.metrics import mean_absolute_error, cohen_kappa_score
-from train.evaluate import evaluate_model
+from train.evaluate import evaluate_model, evaluate_model_chunk
 def train_model_chunk(model_doc, model_chunk, criteria, optimizer, scheduler, train_loader, val_loader, device, additional_info, epochs=10, early_stop=5, rubrics=['tr', 'cc']):
     # Initialize best scores and stopping parameters
     best_val_loss = [np.inf] * len(rubrics)

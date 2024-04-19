@@ -44,6 +44,10 @@ def evaluate_model(model, loader, criteria, device, rubrics):
         return maes, kappas, avg_mse_losses
 
 
+import torch
+import numpy as np
+from sklearn.metrics import mean_absolute_error, cohen_kappa_score
+
 def evaluate_model_chunk(models, loader, criteria, device, rubrics):
     model_doc, model_chunk = models  # Unpack the tuple into separate models
     model_doc.eval()  # Set the document model to evaluation mode
@@ -65,15 +69,16 @@ def evaluate_model_chunk(models, loader, criteria, device, rubrics):
                                     doc_inputs['attention_mask'].to(device),
                                     doc_inputs['token_type_ids'].to(device))
 
-            # Process segment-level inputs
+            # Process segment-level inputs through a cycle
             chunk_outputs = []
-            for seg_idx in range(len(seg_inputs['input_ids'])):
-                seg_output = model_chunk(seg_inputs['input_ids'][seg_idx].to(device),
-                                         seg_inputs['attention_mask'][seg_idx].to(device),
-                                         seg_inputs['token_type_ids'][seg_idx].to(device))
+            for seg_idx in range(seg_inputs['input_ids'].shape[1]):  # Iterate through each segment
+                seg_input_ids = seg_inputs['input_ids'][:, seg_idx, :].to(device)
+                seg_attention_mask = seg_inputs['attention_mask'][:, seg_idx, :].to(device)
+                seg_token_type_ids = seg_inputs['token_type_ids'][:, seg_idx, :].to(device)
+                seg_output = model_chunk(seg_input_ids, seg_attention_mask, seg_token_type_ids)
                 chunk_outputs.append(seg_output)
 
-            # Combine outputs from all segments
+            # Combine outputs from all segments by averaging
             combined_chunk_output = torch.mean(torch.stack(chunk_outputs), dim=0)
 
             # Combine document and chunk outputs
