@@ -12,6 +12,7 @@ def train_model(model, criteria, optimizer, scheduler, train_loader, val_loader,
     epochs_no_improve = 0
     n_epochs_stop = early_stop
     history = {'train_loss': [], 'kappa_scores_mean': [], 'maes_mean': []}
+    task_weights = [1 / len(rubric)] * len(rubrics)
 
     # Initialize history for each rubric
     for rubric in rubrics:
@@ -25,7 +26,6 @@ def train_model(model, criteria, optimizer, scheduler, train_loader, val_loader,
         model.train()
         running_loss = 0.0
         total_samples = 0
-        task_weights = [1 / len(rubric)] * len(rubrics)
         for batch in train_loader:
             inputs = {k: v.to(device) for k, v in batch.items() if k != 'labels'}
             labels = batch['labels'].to(device)
@@ -38,8 +38,8 @@ def train_model(model, criteria, optimizer, scheduler, train_loader, val_loader,
             running_loss += loss.item() * labels.size(0)
             total_samples += labels.size(0)
 
-        # if scheduler:
-        #     scheduler.step()
+        if scheduler:
+            scheduler.step()
 
         avg_train_loss = running_loss / total_samples
         history['train_loss'].append(avg_train_loss)
@@ -67,13 +67,10 @@ def train_model(model, criteria, optimizer, scheduler, train_loader, val_loader,
             if valid_losses[i] < best_val_loss[rubric]:
                 best_val_loss[rubric] = valid_losses[i]
                 improved = True
-            if kappas[i] > best_kappa[rubric]:
+            if (kappas[i] > best_kappa[rubric]) and (maes[i] < best_mae[rubric]):
                 best_kappa[rubric] = kappas[i]
-                improved = True
-            if maes[i] < best_mae[rubric]:
                 best_mae[rubric] = maes[i]
                 improved = True
-
         if improved:
             torch.save(model.state_dict(), f'checkpoints/best_model_{additional_info}.pth')
             print(f"Epoch {epoch+1}: New best model saved")
