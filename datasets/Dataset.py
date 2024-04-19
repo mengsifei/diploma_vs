@@ -66,8 +66,7 @@ class CustomDatasetChunk(Dataset):
             input_ids.append(encoded['input_ids'].squeeze(0))
             attention_masks.append(encoded['attention_mask'].squeeze(0))
             token_type_ids.append(encoded['token_type_ids'].squeeze(0))
-
-        # Pad remaining chunks if necessary
+        
         while len(input_ids) < max_chunks:
             input_ids.append(torch.zeros(max_len, dtype=torch.long))
             attention_masks.append(torch.zeros(max_len, dtype=torch.long))
