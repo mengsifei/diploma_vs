@@ -25,13 +25,13 @@ def train_model(model, criteria, optimizer, scheduler, train_loader, val_loader,
         model.train()
         running_loss = 0.0
         total_samples = 0
-
+        task_weights = [1 / len(rubric)] * len(rubrics)
         for batch in train_loader:
             inputs = {k: v.to(device) for k, v in batch.items() if k != 'labels'}
             labels = batch['labels'].to(device)
             optimizer.zero_grad()
             outputs = model(**inputs)
-            loss = sum(criteria[i](outputs[:, i], labels[:, i]) * 0.5 for i in range(len(rubrics)))
+            loss = sum(criteria[i](outputs[:, i], labels[:, i]) * task_weights[i] for i in range(len(rubrics)))
             loss.backward()
             optimizer.step()
 

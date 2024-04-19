@@ -13,7 +13,7 @@ class CustomDataset(Dataset):
         # Split the labels based on the model type
         if model_type == 'model1':
             # For the first model, which predicts Task Response and Coherence and Cohesion
-            self.labels = df[['Task Response', 'Coherence and Cohesion']].values
+            self.labels = df[['Task Response']].values #, 'Coherence and Cohesion'
         elif model_type == 'model2':
             # For the second model, which predicts Lexical Resource and Grammatical Range and Accuracy
             self.labels = df[['Lexical Resource', 'Grammatical Range and Accuracy']].values

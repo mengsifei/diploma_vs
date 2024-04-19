@@ -19,9 +19,9 @@ class BaseELECTRA(nn.Module):
 
 # Define the model for Task Response and Coherence and Cohesion
 class ELECTRA_Model1(BaseELECTRA):
-    def __init__(self, model_name='google/electra-small-discriminator', hidden_dropout_prob=0.2):
+    def __init__(self, model_name='google/electra-small-discriminator', hidden_dropout_prob=0.2, num_labels=2):
         super(ELECTRA_Model1, self).__init__(model_name, hidden_dropout_prob)
-        self.out = nn.Linear(self.electra.config.hidden_size, 2)  # Output for 2 tasks
+        self.out = nn.Linear(self.electra.config.hidden_size, num_labels)  # Output for 2 tasks
 
     def forward(self, input_ids, attention_mask, token_type_ids):
         pooled_output = super().forward(input_ids, attention_mask, token_type_ids)
@@ -30,9 +30,9 @@ class ELECTRA_Model1(BaseELECTRA):
 
 # Define the model for Lexical Resource and Grammatical Range and Accuracy
 class ELECTRA_Model2(BaseELECTRA):
-    def __init__(self, model_name='google/electra-small-discriminator', hidden_dropout_prob=0.2):
+    def __init__(self, model_name='google/electra-small-discriminator', hidden_dropout_prob=0.2, num_labels=2):
         super(ELECTRA_Model2, self).__init__(model_name, hidden_dropout_prob)
-        self.out = nn.Linear(self.electra.config.hidden_size, 2)  # Output for 2 tasks
+        self.out = nn.Linear(self.electra.config.hidden_size, num_labels)  # Output for 2 tasks
 
     def forward(self, input_ids, attention_mask, token_type_ids):
         pooled_output = super().forward(input_ids, attention_mask, token_type_ids)
