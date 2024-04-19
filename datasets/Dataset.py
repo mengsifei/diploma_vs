@@ -2,32 +2,19 @@ import torch
 from torch.utils.data import Dataset
 
 class CustomDataset(Dataset):
-    def __init__(self, df, tokenizer, max_len=512, model_type='model1'):
+    def __init__(self, df, tokenizer, max_len=512):
         self.tokenizer = tokenizer
         self.df = df
         self.text = df['essay']
         self.prompt = df['prompt']
         self.max_len = max_len
-        self.model_type = model_type
-        
-        # Split the labels based on the model type
-        if model_type == 'model1':
-            # For the first model, which predicts Task Response and Coherence and Cohesion
-            self.labels = df[['Task Response', 'Coherence and Cohesion', 'Lexical Resource', 'Grammatical Range and Accuracy']].values #, 
-        # elif model_type == 'model2':
-            # For the second model, which predicts Lexical Resource and Grammatical Range and Accuracy
-            # self.labels = df[[]].values
-        else:
-            raise ValueError("Invalid model_type specified. Use 'model1' or 'model2'.")
-
+        self.labels = df[['Task Response', 'Coherence and Cohesion', 'Lexical Resource', 'Grammatical Range and Accuracy']].values
     def __len__(self):
         return len(self.text)
-
     def __getitem__(self, index):
         text = self.text[index]
         prompt = self.prompt[index]
         combined_text = f"[prompt] {prompt} [ESSAY] {text}"
-        # Process text to handle special tokens, padding, and return a tensor
         inputs = self.tokenizer.encode_plus(
             combined_text,
             None,
@@ -46,6 +33,74 @@ class CustomDataset(Dataset):
             'labels': torch.FloatTensor(self.labels[index])
         }
 
+class CustomDatasetChunk(torch.utils.data.Dataset):
+    def __init__(self, df, tokenizer, max_len=512, segments=[80, 150, 150, 80]):
+        self.tokenizer = tokenizer
+        self.df = df
+        self.text = df['essay']
+        self.topic = df['prompt']
+        self.labels = self.df[['Task Response', 'Coherence and Cohesion', 'Lexical Resource', 'Grammatical Range and Accuracy']].values
+        self.max_len = max_len
+        self.chunk_segments = segments
+
+    def __len__(self):
+        return len(self.text)
+
+    def __getitem__(self, index):
+        text = self.text[index]
+        topic = self.topic[index]
+        combined_text = f"[TOPIC] {topic} [ESSAY] {text}"
+        tokenized_text = self.tokenizer.tokenize(combined_text)
+        chunk_size = 510
+        input_ids_doc = []
+        attention_mask_doc = []
+        token_type_ids_doc = []
+        
+        for i in range(0, len(tokenized_text), chunk_size):
+            chunk = tokenized_text[i:i+chunk_size]
+            chunk = self.tokenizer.encode_plus(chunk,
+                                                add_special_tokens=True,
+                                                max_length=self.max_len,
+                                                padding='max_length',
+                                                truncation=True,
+                                                return_attention_mask=True,
+                                                return_token_type_ids=True,
+                                                return_tensors='pt', 
+                                                is_pretokenized=True)
+            input_ids_doc.append(chunk['input_ids'].flatten())
+            attention_mask_doc.append(chunk['attention_mask'].flatten())
+            token_type_ids_doc.append(chunk['token_type_ids'].flatten())
+        
+        pointer = 0
+        input_ids_seg = []
+        attention_mask_seg = []
+        token_type_ids_seg = []
+        for chunk_size in self.chunk_segments:
+            chunk = tokenized_text[pointer: pointer+chunk_size]
+            chunk = self.tokenizer.encode_plus(chunk,
+                                                add_special_tokens=True,
+                                                max_length=chunk_size,
+                                                padding='max_length',
+                                                truncation=True,
+                                                return_attention_mask=True,
+                                                return_token_type_ids=True,
+                                                return_tensors='pt', 
+                                                is_pretokenized=True)
+            input_ids_seg.append(chunk['input_ids'].flatten())
+            attention_mask_seg.append(chunk['attention_mask'].flatten())
+            token_type_ids_seg.append(chunk['token_type_ids'].flatten())
+            pointer += chunk_size
+        return [{
+            'input_ids': input_ids_doc,
+            'attention_mask': attention_mask_doc,
+            'token_type_ids': token_type_ids_doc,
+            'labels': torch.FloatTensor(self.labels[index])
+        }, {
+            'input_ids': input_ids_seg,
+            'attention_mask': attention_mask_seg,
+            'token_type_ids': token_type_ids_seg,
+            'labels': torch.FloatTensor(self.labels[index])
+        }]
 
 # class CustomDatasetSegment(torch.utils.data.Dataset):
 #     def __init__(self, df, tokenizer, max_len=512):
