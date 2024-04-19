@@ -38,8 +38,8 @@ def train_model(model, criteria, optimizer, scheduler, train_loader, val_loader,
             running_loss += loss.item() * labels.size(0)
             total_samples += labels.size(0)
 
-        if scheduler:
-            scheduler.step()
+        # if scheduler:
+        #     scheduler.step()
 
         avg_train_loss = running_loss / total_samples
         history['train_loss'].append(avg_train_loss)
