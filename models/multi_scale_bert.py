@@ -1,8 +1,6 @@
 import torch
 from torch import nn
-from transformers import AutoModel, AutoTokenizer
-import torch.nn.functional as F
-from torch.cuda.amp import autocast, GradScaler
+from transformers import AutoModel
 
 def init_weights(m):
     if isinstance(m, nn.Linear):
@@ -12,9 +10,9 @@ def init_weights(m):
 class mainplm(nn.Module):
     def __init__(self):
         super(mainplm, self).__init__()
-        self.plm_batch_size = 1
         self.plm = AutoModel.from_pretrained('google/electra-small-discriminator')
 
+        # Freeze certain layers
         for param in self.plm.embeddings.parameters():
             param.requires_grad = False
         for i in range(11):
@@ -27,24 +25,23 @@ class mainplm(nn.Module):
         )
         self.mlp.apply(init_weights)
 
-    def forward(self, document_batch: torch.Tensor):
-        all_plm_output = self.plm(
-            document_batch[:, 0:self.plm_batch_size, 0].view(-1, document_batch.size(-1)),  # Flatten the input
-            token_type_ids=document_batch[:, 0:self.plm_batch_size, 1].view(-1, document_batch.size(-1)),
-            attention_mask=document_batch[:, 0:self.plm_batch_size, 2].view(-1, document_batch.size(-1))
-        )
-        
-        # Directly extract the relevant hidden state instead of using a loop
-        plm_output = all_plm_output.last_hidden_state[:, 0, :].view(document_batch.shape[0], -1)
-        
-        prediction = self.mlp(plm_output)
-        return prediction
+    def forward(self, input_ids, attention_mask, token_type_ids):
+        # Handle input dimensions assuming input_ids are [batch_size, chunks, seq_length]
+        input_ids = input_ids.view(-1, input_ids.size(-1))  # Flatten the batch and chunk dimensions
+        token_type_ids = token_type_ids.view(-1, token_type_ids.size(-1))
+        attention_mask = attention_mask.view(-1, attention_mask.size(-1))
+
+        outputs = self.plm(input_ids=input_ids, token_type_ids=token_type_ids, attention_mask=attention_mask)
+        cls_output = outputs.last_hidden_state[:, 0, :]  # Extract the [CLS] token's output
+        prediction = self.mlp(cls_output)
+        return prediction.view(-1, 4)  # Reshape to [batch_size, num_classes (per chunk)] if needed
 
 class chunkplm(nn.Module):
     def __init__(self):
         super(chunkplm, self).__init__()
         self.plm = AutoModel.from_pretrained('google/electra-small-discriminator')
 
+        # Optionally freeze the embeddings and transformer layers to stabilize training
         for param in self.plm.embeddings.parameters():
             param.requires_grad = False
         for i in range(12):
@@ -52,11 +49,11 @@ class chunkplm(nn.Module):
                 param.requires_grad = False
 
         self.dropout = nn.Dropout(p=0.1)
-        self.lstm = nn.LSTM(self.plm.config.hidden_size, self.plm.config.hidden_size)
-        self.mlp = nn.Sequential(
-            nn.Dropout(p=0.1),
-            nn.Linear(self.plm.config.hidden_size, 1)
-        )
+        self.lstm = nn.LSTM(self.plm.config.hidden_size, self.plm.config.hidden_size, batch_first=True)
+        self.fc = nn.Linear(self.plm.config.hidden_size, 1)  # Output dimension is 1 per chunk
+        self.fc.apply(init_weights)
+
+        # Attention parameters
         self.w_omega = nn.Parameter(torch.Tensor(self.plm.config.hidden_size, self.plm.config.hidden_size))
         self.b_omega = nn.Parameter(torch.Tensor(1, self.plm.config.hidden_size))
         self.u_omega = nn.Parameter(torch.Tensor(self.plm.config.hidden_size, 1))
@@ -64,22 +61,26 @@ class chunkplm(nn.Module):
         nn.init.uniform_(self.w_omega, -0.1, 0.1)
         nn.init.uniform_(self.u_omega, -0.1, 0.1)
         nn.init.uniform_(self.b_omega, -0.1, 0.1)
-        self.mlp.apply(init_weights)
 
-    def forward(self, document_batch: torch.Tensor, plm_batch_size=0):
-        # Perform PLM operations on all chunks at once
-        plm_output = self.plm(
-            document_batch.view(-1, document_batch.size(-1)),  # Flatten the input
-            attention_mask=(document_batch != self.tokenizer.pad_token_id).view(-1, document_batch.size(-1))
-        )[1].view(document_batch.shape[0], plm_batch_size, -1)
-        
-        # Use built-in LSTM, no need for manual looping
-        output, _ = self.lstm(plm_output)
-        
-        # Attention calculations can be done on batch tensors directly
-        attention_w = torch.tanh(torch.matmul(output, self.w_omega) + self.b_omega)
-        attention_score = F.softmax(attention_w.matmul(self.u_omega), dim=1)
-        attention_hidden = (output * attention_score).sum(dim=1)
-        
-        prediction = self.mlp(attention_hidden)
+    def forward(self, input_ids, attention_mask, token_type_ids):
+        batch_size, seq_count, seq_len = input_ids.shape
+        # Reshape input to process all sequences together
+        input_ids = input_ids.view(-1, seq_len)
+        attention_mask = attention_mask.view(-1, seq_len)
+        token_type_ids = token_type_ids.view(-1, seq_len)
+
+        outputs = self.plm(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids).last_hidden_state
+        outputs = outputs[:, 0, :]  # Take the output of the [CLS] token
+
+        # Reshape back to batch form for LSTM processing
+        outputs = outputs.view(batch_size, seq_count, -1)
+
+        lstm_output, _ = self.lstm(outputs)  # Apply LSTM across the sequence count dimension
+
+        # Apply attention
+        attention_w = torch.tanh(torch.matmul(lstm_output, self.w_omega) + self.b_omega)
+        attention_score = torch.softmax(torch.matmul(attention_w, self.u_omega), dim=1)
+        attention_output = torch.sum(lstm_output * attention_score, dim=1)  # Sum weighted sequences
+
+        prediction = self.fc(attention_output)
         return prediction

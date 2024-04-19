@@ -30,14 +30,15 @@ def train_model_chunk(model_doc, model_chunk, criteria, optimizer, scheduler, tr
         total_samples = 0
 
         for batch in train_loader:
-            doc_inputs = batch[0].to(device)
-            chunk_inputs = batch[1].to(device)
-            labels = doc_inputs['labels']  # Assuming labels are shared and correctly formatted
+            doc_inputs = {k: v.to(device) for k, v in batch[0].items() if k != 'labels'}
+            chunk_inputs = {k: v.to(device) for k, v in batch[1].items() if k != 'labels'}
+            labels = batch[0]['labels'].to(device)  # Assuming labels are shared and correctly formatted
 
             # Zero the parameter gradients
             optimizer_doc.zero_grad()
             optimizer_chunk.zero_grad()
-
+            # print(doc_inputs['input_ids'].shape, doc_inputs['attention_mask'].shape, doc_inputs['token_type_ids'].shape)
+            # print(chunk_inputs['input_ids'].shape, chunk_inputs['attention_mask'].shape, chunk_inputs['token_type_ids'].shape)
             # Forward pass for both models
             doc_outputs = model_doc(doc_inputs['input_ids'], doc_inputs['attention_mask'], doc_inputs['token_type_ids'])
             chunk_outputs = model_chunk(chunk_inputs['input_ids'], chunk_inputs['attention_mask'], chunk_inputs['token_type_ids'])
