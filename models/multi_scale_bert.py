@@ -2,9 +2,6 @@ import torch
 from torch import nn
 from transformers import AutoModel
 
-import torch
-from torch import nn
-from transformers import AutoModel
 
 def init_weights(m):
     if isinstance(m, nn.Linear):

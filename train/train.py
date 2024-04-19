@@ -37,13 +37,13 @@ def train_model_chunk(model_doc, model_chunk, criteria, optimizer, scheduler, tr
             # Zero the parameter gradients
             optimizer_doc.zero_grad()
             optimizer_chunk.zero_grad()
-            print(doc_inputs['input_ids'].shape, doc_inputs['attention_mask'].shape, doc_inputs['token_type_ids'].shape)
-            print(chunk_inputs['input_ids'].shape, chunk_inputs['attention_mask'].shape, chunk_inputs['token_type_ids'].shape)
+            # print(doc_inputs['input_ids'].shape, doc_inputs['attention_mask'].shape, doc_inputs['token_type_ids'].shape)
+            # print(chunk_inputs['input_ids'].shape, chunk_inputs['attention_mask'].shape, chunk_inputs['token_type_ids'].shape)
             # Forward pass for both models
             doc_outputs = model_doc(doc_inputs['input_ids'], doc_inputs['attention_mask'], doc_inputs['token_type_ids'])
-            chunk_outputs = model_chunk(chunk_inputs['input_ids'], chunk_inputs['attention_mask'], chunk_inputs['token_type_ids'])
-            print(doc_outputs.shape)
-            print(chunk_outputs.shape)
+            chunk_outputs = model_chunk(chunk_inputs['input_ids'], chunk_inputs['attention_mask'], chunk_inputs['token_type_ids'], device)
+            # print(doc_outputs.shape)
+            # print(chunk_outputs.shape)
             # Calculate losses for each rubric independently
             losses_doc = {rubrics[i]: criteria[0][i](doc_outputs[:, i], labels[:, i]) * task_weights[i] for i in range(len(rubrics))}
             losses_chunk = {rubrics[i]: criteria[1][i](chunk_outputs[:, i], labels[:, i]) * task_weights[i] for i in range(len(rubrics))}
