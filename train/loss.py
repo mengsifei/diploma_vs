@@ -2,7 +2,7 @@ import torch
 import torch.nn.functional as F
 
 class CombinedLoss(torch.nn.Module):
-    def __init__(self, weights=[0.33, 0.33, 0.33], b=0.0):
+    def __init__(self, weights=[0.6, 0.3, 0.1], b=0.0):
         super(CombinedLoss, self).__init__()
         self.mse_loss = torch.nn.MSELoss()
         self.weights = weights

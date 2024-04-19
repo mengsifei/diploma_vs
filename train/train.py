@@ -42,10 +42,11 @@ def train_model_chunk(model_doc, model_chunk, criteria, optimizer, scheduler, tr
             # Forward pass for both models
             doc_outputs = model_doc(doc_inputs['input_ids'], doc_inputs['attention_mask'], doc_inputs['token_type_ids'])
             chunk_outputs = model_chunk(chunk_inputs['input_ids'], chunk_inputs['attention_mask'], chunk_inputs['token_type_ids'])
-
+            print(doc_outputs.shape)
+            print(chunk_outputs.shape)
             # Calculate losses for each rubric independently
-            losses_doc = {rubrics[i]: criteria[i](doc_outputs[:, i], labels[:, i]) * task_weights[i] for i in range(len(rubrics))}
-            losses_chunk = {rubrics[i]: criteria[i](chunk_outputs[:, i], labels[:, i]) * task_weights[i] for i in range(len(rubrics))}
+            losses_doc = {rubrics[i]: criteria[0][i](doc_outputs[:, i], labels[:, i]) * task_weights[i] for i in range(len(rubrics))}
+            losses_chunk = {rubrics[i]: criteria[1][i](chunk_outputs[:, i], labels[:, i]) * task_weights[i] for i in range(len(rubrics))}
 
             # Aggregate the losses from both models
             total_loss_doc = sum(losses_doc.values())
@@ -71,7 +72,7 @@ def train_model_chunk(model_doc, model_chunk, criteria, optimizer, scheduler, tr
         for rubric in rubrics:
             history[f'train_loss_{rubric}'].append(avg_losses[rubric])
 
-        maes, kappas, valid_losses = evaluate_model((model_doc, model_chunk), val_loader, criteria, device, rubrics)
+        maes, kappas, valid_losses = evaluate_model_chunk((model_doc, model_chunk), val_loader, criteria, device, rubrics)
         mean_kappa = np.mean(kappas)
         mean_mae = np.mean(maes)
 
