@@ -11,7 +11,8 @@ def train_model_chunk(model_doc, model_chunk, criteria, optimizer, scheduler, tr
     best_kappa = [-np.inf] * len(rubrics)
     epochs_no_improve = 0
     n_epochs_stop = early_stop
-
+    optimizer_doc, optimizer_chunk = optimizer
+    scheduler_doc, scheduler_chunk = scheduler
     # Initialize history for each rubric and overall metrics
     history = {'kappa_scores_mean': [], 'maes_mean': []}
     for rubric in rubrics:
@@ -25,54 +26,54 @@ def train_model_chunk(model_doc, model_chunk, criteria, optimizer, scheduler, tr
     for epoch in tqdm(range(epochs), desc="Epochs"):
         model_doc.train()
         model_chunk.train()
-        running_loss = {rubric: 0.0 for rubric in rubrics}
+        running_losses = {rubric: 0.0 for rubric in rubrics}
         total_samples = 0
 
         for batch in train_loader:
-            doc_input, seg_input = batch  # Unpacking document and segment inputs
-            labels = doc_input['labels'].to(device)  # Assumes labels are the same for both inputs
-            optimizer.zero_grad()
-            
-            # Processing document-level inputs
-            doc_predictions = model_doc(doc_input['input_ids'].to(device), 
-                                        doc_input['attention_mask'].to(device), 
-                                        doc_input['token_type_ids'].to(device))
-            doc_predictions = torch.squeeze(doc_predictions)
+            doc_inputs = batch[0].to(device)
+            chunk_inputs = batch[1].to(device)
+            labels = doc_inputs['labels']  # Assuming labels are shared and correctly formatted
 
-            # Processing chunk/segment-level inputs
-            chunk_predictions = []
-            for seg_idx in range(len(seg_input['input_ids'])):
-                seg_pred = model_chunk(seg_input['input_ids'][seg_idx].to(device), 
-                                       seg_input['attention_mask'][seg_idx].to(device), 
-                                       seg_input['token_type_ids'][seg_idx].to(device))
-                chunk_predictions.append(torch.squeeze(seg_pred))
+            # Zero the parameter gradients
+            optimizer_doc.zero_grad()
+            optimizer_chunk.zero_grad()
 
-            # Combine predictions from all chunks
-            batch_predictions = torch.mean(torch.stack(chunk_predictions), dim=0)
+            # Forward pass for both models
+            doc_outputs = model_doc(doc_inputs['input_ids'], doc_inputs['attention_mask'], doc_inputs['token_type_ids'])
+            chunk_outputs = model_chunk(chunk_inputs['input_ids'], chunk_inputs['attention_mask'], chunk_inputs['token_type_ids'])
 
-            # Combine document and chunk level predictions
-            batch_predictions = (doc_predictions + batch_predictions) / 2
+            # Calculate losses for each rubric independently
+            losses_doc = {rubrics[i]: criteria[i](doc_outputs[:, i], labels[:, i]) * task_weights[i] for i in range(len(rubrics))}
+            losses_chunk = {rubrics[i]: criteria[i](chunk_outputs[:, i], labels[:, i]) * task_weights[i] for i in range(len(rubrics))}
 
-            # Compute Loss
-            loss = criteria(batch_predictions, labels)
-            loss.backward()
-            optimizer.step()
+            # Aggregate the losses from both models
+            total_loss_doc = sum(losses_doc.values())
+            total_loss_chunk = sum(losses_chunk.values())
 
-            running_loss += loss.item() * doc_input['input_ids'].size(0)
-            total_samples += doc_input['input_ids'].size(0)
+            # Backward pass for both models
+            total_loss_doc.backward()
+            total_loss_chunk.backward()
+            optimizer_doc.step()
+            optimizer_chunk.step()
 
-        if scheduler:
-            scheduler.step()
+            # Record losses
+            for rubric in rubrics:
+                running_losses[rubric] += (losses_doc[rubric].item() + losses_chunk[rubric].item()) / 2 * labels.size(0)
+            total_samples += labels.size(0)
 
-        # Calculate and log the average losses
+        # Step the learning rate schedulers
+        scheduler_doc.step()
+        scheduler_chunk.step()
+
+        # Log average losses and evaluate on validation data
+        avg_losses = {rubric: running_losses[rubric] / total_samples for rubric in rubrics}
         for rubric in rubrics:
-            avg_train_loss = running_loss[rubric] / total_samples
-            history[f'train_loss_{rubric}'].append(avg_train_loss)
+            history[f'train_loss_{rubric}'].append(avg_losses[rubric])
 
-        # Evaluate the model on validation data
         maes, kappas, valid_losses = evaluate_model((model_doc, model_chunk), val_loader, criteria, device, rubrics)
         mean_kappa = np.mean(kappas)
         mean_mae = np.mean(maes)
+
         history['kappa_scores_mean'].append(mean_kappa)
         history['maes_mean'].append(mean_mae)
 
