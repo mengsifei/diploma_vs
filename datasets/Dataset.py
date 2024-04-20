@@ -5,10 +5,10 @@ class CustomDatasetChunk(Dataset):
     def __init__(self, df, tokenizer, max_len=512, segments=[80, 150, 150, 80], max_chunks=None):
         self.tokenizer = tokenizer
         self.df = df
-        self.text = df['essay']
-        self.topic = df['prompt']
+        self.text = df['essay'].tolist()
+        self.topic = df['prompt'].tolist()
         self.labels = self.df[['Task Response', 'Coherence and Cohesion', 
-                               'Lexical Resource', 'Grammatical Range and Accuracy']].values
+                               'Lexical Resource', 'Grammatical Range and Accuracy']].values.tolist()
         self.max_len = max_len
         self.segment_lengths = segments
         self.max_chunks = max_chunks if max_chunks is not None else len(segments)
@@ -60,13 +60,23 @@ class CustomDatasetChunk(Dataset):
         for chunk in chunks:
             if not chunk:
                 chunk = ["[UNK]"]  # Fallback for empty chunks
+            # # Join the tokens into a single string
+            # chunk_text = ' '.join(chunk)
+            # print(chunk_text)
             encoded = self.tokenizer.encode_plus(
-                chunk, add_special_tokens=True, max_length=max_len,
-                padding='max_length', truncation=True, return_tensors='pt')
+                chunk,  # Use the string of tokens here
+                add_special_tokens=True,
+                max_length=max_len,
+                padding='max_length',
+                truncation=True,
+                is_pretokenized=True,
+                return_tensors='pt'
+            )
             input_ids.append(encoded['input_ids'].squeeze(0))
             attention_masks.append(encoded['attention_mask'].squeeze(0))
             token_type_ids.append(encoded['token_type_ids'].squeeze(0))
-        
+
+        # Pad the batches to max_chunks if necessary
         while len(input_ids) < max_chunks:
             input_ids.append(torch.zeros(max_len, dtype=torch.long))
             attention_masks.append(torch.zeros(max_len, dtype=torch.long))
