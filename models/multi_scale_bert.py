@@ -11,7 +11,7 @@ def init_weights(m):
 class mainplm(nn.Module):
     def __init__(self):
         super(mainplm, self).__init__()
-        self.plm = AutoModel.from_pretrained('google/electra-small-discriminator')
+        self.plm = AutoModel.from_pretrained('bert-base-cased')
 
         # Freeze certain layers to reduce computation and stabilize training
         for param in self.plm.embeddings.parameters():
@@ -60,7 +60,7 @@ def init_weights(m):
 class chunkplm(nn.Module):
     def __init__(self):
         super(chunkplm, self).__init__()
-        self.plm = AutoModel.from_pretrained('google/electra-small-discriminator')
+        self.plm = AutoModel.from_pretrained('bert-base-cased')
 
         # Freezing embeddings and transformer layers
         for param in self.plm.embeddings.parameters():
