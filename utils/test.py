@@ -27,7 +27,8 @@ def score_essay_vanilla(topic, essay, tokenizer, model_dict, device):
             outputs = model(**inputs)
             outputs = outputs.cpu().numpy()[0]
             outputs = np.round(outputs)
-            output_scores.extend(outputs)  # Assuming ordering in model_dict matches the task ordering
+            output_scores.append(outputs)  # Assuming ordering in model_dict matches the task ordering
+    output_scores = np.mean(output_scores, dim=1)
     output_scores = np.clip(output_scores, 1, 9)
     return output_scores
 
