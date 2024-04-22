@@ -1,4 +1,4 @@
-from transformers import ElectraModel, BertModel, DebertaModel, GPT2Model
+from transformers import ElectraModel, BertModel, DebertaModel, GPT2Model, AutoModel
 import torch.nn as nn
 import torch
 from models.poolings import *
@@ -21,6 +21,8 @@ class BaseModel(nn.Module):
             self.model = DebertaModel.from_pretrained('microsoft/deberta-v3-small')
         elif self.model_name == 'gpt':
             self.model = GPT2Model.from_pretrained('gpt2')
+        elif self.model_name == 'simcsc':
+            self.model = AutoModel.from_pretrained('princeton-nlp/sup-simcse-bert-base-uncased')
     def forward(self, input_ids, attention_mask, token_type_ids=None):
         outputs = self.model(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids)
         last_hidden_state = outputs.last_hidden_state
