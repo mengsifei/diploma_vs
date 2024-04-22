@@ -28,4 +28,3 @@ class BaseModel(nn.Module):
         dropout_output = self.dropout(pooled_output)
         final_outputs = self.out(dropout_output)  # This is the logits output for each class
         return final_outputs
-
