@@ -3,8 +3,9 @@ import pandas as pd
 
 def draw_graphs(results, subtitles):
     validation_all = ["validation_loss_{}".format(subtitle) for subtitle in subtitles]
+    train_all = ["train_loss_{}".format(subtitle) for subtitle in subtitles]
     fig, axs = plt.subplots(1, 2, figsize=(15, 5))
-    axs[0].plot(results['train_loss'], marker='.')
+    axs[0].plot(results[train_all], marker='.', label=validation_all)
     axs[1].plot(results[validation_all], marker='.', label=validation_all)
     axs[0].set_title("Training loss comparison")
     axs[1].set_title("Validation loss comparison")

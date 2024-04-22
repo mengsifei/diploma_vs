@@ -135,7 +135,9 @@ def train_model(model, criteria, optimizer, scheduler, train_loader, val_loader,
         model.train()
         running_loss = {rubric: 0.0 for rubric in rubrics}
         total_samples = 0
-
+        for param_group in optimizer.param_groups:
+            current_lr = param_group['lr']
+            print("Current Learning Rate:", current_lr)
         for batch in train_loader:
             inputs = {k: v.to(device) for k, v in batch.items() if k != 'labels'}
             labels = batch['labels'].to(device)
@@ -223,7 +225,9 @@ def train_model(model, criteria, optimizer, scheduler, train_loader, val_loader,
         model.train()
         running_loss = {rubric: 0.0 for rubric in rubrics}
         total_samples = 0
-
+        for param_group in optimizer.param_groups:
+            current_lr = param_group['lr']
+            print("Current Learning Rate:", current_lr)
         for batch in train_loader:
             inputs = {k: v.to(device) for k, v in batch.items() if k != 'labels'}
             labels = batch['labels'].to(device)
