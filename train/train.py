@@ -4,15 +4,15 @@ import torch
 import gc
 from sklearn.metrics import mean_absolute_error, cohen_kappa_score
 from train.evaluate import evaluate_model, evaluate_model_chunk
-def train_model_chunk(model_doc, model_chunk, criteria, optimizer, scheduler, train_loader, val_loader, device, additional_info, epochs=10, early_stop=5, rubrics=['tr', 'cc']):
+def train_model_chunk(model_doc, model_chunk, criteria, optimizers, schedulers, train_loader, val_loader, device, additional_info, epochs=10, early_stop=5, rubrics=['tr', 'cc']):
     # Initialize best scores and stopping parameters
     best_val_loss = [np.inf] * len(rubrics)
     best_mae = [np.inf] * len(rubrics)
     best_kappa = [-np.inf] * len(rubrics)
     epochs_no_improve = 0
     n_epochs_stop = early_stop
-    optimizer_doc, optimizer_chunk = optimizer
-    scheduler_doc, scheduler_chunk = scheduler
+    optimizers_doc, optimizers_chunk = optimizers
+    schedulers_doc, schedulers_chunk = schedulers
     # Initialize history for each rubric and overall metrics
     history = {'kappa_scores_mean': [], 'maes_mean': []}
     for rubric in rubrics:
@@ -35,8 +35,8 @@ def train_model_chunk(model_doc, model_chunk, criteria, optimizer, scheduler, tr
             labels = batch[0]['labels'].to(device)  # Assuming labels are shared and correctly formatted
 
             # Zero the parameter gradients
-            optimizer_doc.zero_grad()
-            optimizer_chunk.zero_grad()
+            optimizers_doc.zero_grad()
+            optimizers_chunk.zero_grad()
             # print(doc_inputs['input_ids'].shape, doc_inputs['attention_mask'].shape, doc_inputs['token_type_ids'].shape)
             # print(chunk_inputs['input_ids'].shape, chunk_inputs['attention_mask'].shape, chunk_inputs['token_type_ids'].shape)
             # Forward pass for both models
@@ -55,17 +55,17 @@ def train_model_chunk(model_doc, model_chunk, criteria, optimizer, scheduler, tr
             # Backward pass for both models
             total_loss_doc.backward()
             total_loss_chunk.backward()
-            optimizer_doc.step()
-            optimizer_chunk.step()
+            optimizers_doc.step()
+            optimizers_chunk.step()
 
             # Record losses
             for rubric in rubrics:
                 running_losses[rubric] += (losses_doc[rubric].item() + losses_chunk[rubric].item()) / 2 * labels.size(0)
             total_samples += labels.size(0)
 
-        # Step the learning rate schedulers
-        scheduler_doc.step()
-        scheduler_chunk.step()
+        # Step the learning rate schedulerss
+        schedulers_doc.step()
+        schedulers_chunk.step()
 
         # Log average losses and evaluate on validation data
         avg_losses = {rubric: running_losses[rubric] / total_samples for rubric in rubrics}
@@ -134,10 +134,7 @@ def train_model(model, criteria, optimizer, scheduler, train_loader, val_loader,
     for epoch in tqdm(range(epochs), desc="Epochs"):
         model.train()
         running_loss = {rubric: 0.0 for rubric in rubrics}
-        total_samples = 0
-        for param_group in optimizer.param_groups:
-            current_lr = param_group['lr']
-            print("Current Learning Rate:", current_lr)
+        total_samples = {rubric: 0 for rubric in rubrics}
         for batch in train_loader:
             inputs = {k: v.to(device) for k, v in batch.items() if k != 'labels'}
             labels = batch['labels'].to(device)
@@ -148,17 +145,15 @@ def train_model(model, criteria, optimizer, scheduler, train_loader, val_loader,
             total_loss = sum(losses.values())
             total_loss.backward()
             optimizer.step()
-
-            for rubric in rubrics:
+            for i, rubric in enumerate(rubrics):
                 running_loss[rubric] += losses[rubric].item() * labels.size(0)
-            total_samples += labels.size(0)
-
+                total_samples[rubric] += labels.size(0)
         if scheduler:
             scheduler.step()
 
         # Calculate and log the average losses
         for rubric in rubrics:
-            avg_train_loss = running_loss[rubric] / total_samples
+            avg_train_loss = running_loss[rubric] / total_samples[rubric]
             history[f'train_loss_{rubric}'].append(avg_train_loss)
 
         # Evaluate the model on validation data
