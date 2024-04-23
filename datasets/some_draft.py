@@ -1,4 +1,3 @@
-
 # class CustomDatasetSegment(torch.utils.data.Dataset):
 #     def __init__(self, df, tokenizer, max_len=512):
 #         self.tokenizer = tokenizer
