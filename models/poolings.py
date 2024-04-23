@@ -14,6 +14,31 @@ class MeanPooling(nn.Module):
         sum_mask = torch.clamp(sum_mask, min=1e-9)
         mean_embeddings = sum_embeddings / sum_mask
         return mean_embeddings
+class MeanPoolingChunks(nn.Module):
+    def __init__(self):
+        super(MeanPooling, self).__init__()
+
+    def forward(self, embeddings, attention_mask):
+        # Embeddings shape: (batch_size, num_chunks, seq_length, hidden_size)
+        # Attention_mask shape: (batch_size, num_chunks, seq_length)
+        batch_size, num_chunks, seq_length, hidden_size = embeddings.size()
+        expanded_mask = attention_mask.unsqueeze(-1).expand(-1, -1, -1, hidden_size).float()
+
+        # Summing embeddings across the seq_length dimension
+        sum_embeddings = torch.sum(embeddings * expanded_mask, dim=2)  # Shape: (batch_size, num_chunks, hidden_size)
+        sum_mask = torch.sum(expanded_mask, dim=2)  # Shape: (batch_size, num_chunks, hidden_size)
+
+        # Avoid division by zero
+        sum_mask = torch.clamp(sum_mask, min=1e-9)
+        
+        # Mean over sequence length
+        mean_embeddings = sum_embeddings / sum_mask  # Shape: (batch_size, num_chunks, hidden_size)
+
+        # Average over chunks or other pooling method
+        # For simplicity, we take mean across chunks
+        final_mean = torch.mean(mean_embeddings, dim=1)  # Shape: (batch_size, hidden_size)
+
+        return final_mean
 
 
 # class AttentionPooling(nn.Module):

@@ -9,8 +9,8 @@ class BaseModel(nn.Module):
         self.model_name = model_name
         self.model = None
         self.get_model()
-        # self.pooler = MeanPooling()
-        self.pooler = SoftAttention(self.model.config.hidden_size)
+        self.pooler = MeanPoolingChunks()
+        # self.pooler = SoftAttention(self.model.config.hidden_size)
         self.dropout = nn.Dropout(hidden_dropout_prob)
         self.out = nn.Linear(self.model.config.hidden_size, num_labels)
     def get_model(self):
@@ -26,10 +26,20 @@ class BaseModel(nn.Module):
             self.model = AutoModel.from_pretrained('princeton-nlp/sup-simcse-bert-base-uncased')
         elif self.model_name == 'xlnet':
             self.model = AutoModel.from_pretrained('xlnet-base-cased')
-    def forward(self, input_ids, attention_mask, token_type_ids=None):
-        outputs = self.model(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids)
-        last_hidden_state = outputs.last_hidden_state
-        pooled_output = self.pooler(last_hidden_state)
-        dropout_output = self.dropout(pooled_output)
-        final_outputs = self.out(dropout_output)  # This is the logits output for each class
-        return final_outputs
+    def forward(self, input_ids, attention_mask, token_type_ids):
+        batch_size, num_chunks, seq_length = input_ids.size()
+        all_outputs = []
+        for i in range(num_chunks):
+            chunk_input_ids = input_ids[:, i, :]
+            chunk_attention_mask = attention_mask[:, i, :]
+            chunk_token_type_ids = token_type_ids[:, i, :]
+            outputs = self.model(input_ids=chunk_input_ids, 
+                                attention_mask=chunk_attention_mask, 
+                                token_type_ids=chunk_token_type_ids)
+            all_outputs.append(outputs.last_hidden_state)
+        # Stack along a new dimension to keep chunks separate
+        all_outputs = torch.stack(all_outputs, dim=1)  # Shape: (batch_size, num_chunks, seq_length, hidden_size)
+        pooled_output = self.pooler(all_outputs, attention_mask)  # Make sure attention_mask is correct
+        dropped_output = self.dropout(pooled_output)
+        prediction = self.out(dropped_output)
+        return prediction

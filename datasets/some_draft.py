@@ -48,3 +48,34 @@
 #         }
 
 
+# def forward(self, input_ids, attention_mask, token_type_ids=None):
+#     outputs = self.model(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids)
+#     last_hidden_state = outputs.last_hidden_state
+#     pooled_output = self.pooler(last_hidden_state)
+#     dropout_output = self.dropout(pooled_output)
+#     final_outputs = self.out(dropout_output)  # This is the logits output for each class
+#     return final_outputs
+
+# def __getitem__(self, index):
+#         text = self.text[index].replace('\n', '[SEP]')
+#         prompt = self.prompt[index]
+#         combined_text = f"[prompt] {prompt} [prompt] {prompt} [ESSAY] {text}"
+#         tokenized_text = self.tokenizer.tokenize(combined_text)
+#         input_ids_doc, attention_mask_doc, token_type_ids_doc = self.process_chunks(tokenized_text, self.max_len, self.max_chunks)
+#         inputs = self.tokenizer.encode_plus(
+#             combined_text,
+#             None,
+#             add_special_tokens=True,
+#             max_length=self.max_len,
+#             padding='max_length',
+#             return_token_type_ids=True,
+#             truncation=True,
+#             return_attention_mask=True,
+#             return_tensors='pt'
+#         )
+#         return {
+#             'input_ids': inputs['input_ids'].flatten(),
+#             'attention_mask': inputs['attention_mask'].flatten(),
+#             'token_type_ids': inputs['token_type_ids'].flatten(),
+#             'labels': torch.FloatTensor(self.labels[index])
+#         }  
