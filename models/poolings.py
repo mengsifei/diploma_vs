@@ -16,7 +16,7 @@ class MeanPooling(nn.Module):
         return mean_embeddings
 class MeanPoolingChunks(nn.Module):
     def __init__(self):
-        super(MeanPooling, self).__init__()
+        super(MeanPoolingChunks, self).__init__()
 
     def forward(self, embeddings, attention_mask):
         # Embeddings shape: (batch_size, num_chunks, seq_length, hidden_size)
