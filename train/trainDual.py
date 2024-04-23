@@ -2,7 +2,7 @@ from tqdm import tqdm
 import numpy as np
 import torch
 import gc
-from train.evaluate import evaluate_model
+from train.evaluateDual import evaluate_model
 
 def train_model(model, criteria, optimizer, scheduler, train_loader, val_loader, device, additional_info, epochs=10, early_stop=5, rubrics=['tr', 'cc']):
     # Initialize best scores and stopping parameters
@@ -35,7 +35,7 @@ def train_model(model, criteria, optimizer, scheduler, train_loader, val_loader,
             topic_inputs = {
                 'topic_input_ids': batch['topic_input_ids'].to(device),
                 'topic_attention_mask': batch['topic_attention_mask'].to(device),
-                'topic_token_type_ids': batch['prompt_token_type_ids'].to(device),
+                'topic_token_type_ids': batch['topic_token_type_ids'].to(device),
             }
             labels = batch['labels'].to(device)
             optimizer.zero_grad()

@@ -20,7 +20,7 @@ def evaluate_model(model, loader, criteria, device, rubrics):
             topic_inputs = {
                 'topic_input_ids': batch['topic_input_ids'].to(device),
                 'topic_attention_mask': batch['topic_attention_mask'].to(device),
-                'topic_token_type_ids': batch['prompt_token_type_ids'].to(device),
+                'topic_token_type_ids': batch['topic_token_type_ids'].to(device),
             }
             labels = batch['labels'].to(device)
             outputs = model(essay_input_ids=essay_inputs['essay_input_ids'], 

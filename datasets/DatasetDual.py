@@ -43,9 +43,9 @@ class CustomDatasetDual(torch.utils.data.Dataset):
             'essay_input_ids': essay_inputs['input_ids'].flatten(),
             'essay_attention_mask': essay_inputs['attention_mask'].flatten(),
             'essay_token_type_ids': essay_inputs['token_type_ids'].flatten(),
-            'prompt_input_ids': prompt_inputs['input_ids'].flatten(),
-            'prompt_attention_mask': prompt_inputs['attention_mask'].flatten(),
-            'prompt_token_type_ids': prompt_inputs['token_type_ids'].flatten(),
+            'topic_input_ids': prompt_inputs['input_ids'].flatten(),
+            'topic_attention_mask': prompt_inputs['attention_mask'].flatten(),
+            'topic_token_type_ids': prompt_inputs['token_type_ids'].flatten(),
             'labels': torch.FloatTensor(self.labels[index])
         }
     
