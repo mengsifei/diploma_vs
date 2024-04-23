@@ -2,7 +2,7 @@ from tqdm import tqdm
 import numpy as np
 import torch
 import gc
-from train.evaluate import evaluate_model
+from train.evaluateVanilla import evaluate_model
 
 def train_model(model, criteria, optimizer, scheduler, train_loader, val_loader, device, additional_info, epochs=10, early_stop=5, rubrics=['tr', 'cc']):
     # Initialize best scores and stopping parameters
