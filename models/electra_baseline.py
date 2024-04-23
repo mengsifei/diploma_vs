@@ -9,7 +9,8 @@ class BaseModel(nn.Module):
         self.model_name = model_name
         self.model = None
         self.get_model()
-        self.pooler = MeanPooling()
+        # self.pooler = MeanPooling()
+        self.pooler = SoftAttention(self.model.config.hidden_size)
         self.dropout = nn.Dropout(hidden_dropout_prob)
         self.out = nn.Linear(self.model.config.hidden_size, num_labels)
     def get_model(self):
@@ -28,7 +29,7 @@ class BaseModel(nn.Module):
     def forward(self, input_ids, attention_mask, token_type_ids=None):
         outputs = self.model(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids)
         last_hidden_state = outputs.last_hidden_state
-        pooled_output = self.pooler(last_hidden_state, attention_mask)
+        pooled_output = self.pooler(last_hidden_state)
         dropout_output = self.dropout(pooled_output)
         final_outputs = self.out(dropout_output)  # This is the logits output for each class
         return final_outputs
