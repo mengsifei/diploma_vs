@@ -28,8 +28,8 @@ class CustomDatasetDual(torch.utils.data.Dataset):
         )
         
         prompt_inputs = self.tokenizer(
-            essay_text,
             prompt_text,
+            None,
             add_special_tokens=True,
             max_length= 40,
             padding='max_length',

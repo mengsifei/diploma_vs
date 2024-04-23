@@ -36,6 +36,7 @@ class CustomELECTRA(nn.Module):
         self.electra = ElectraModel.from_pretrained('google/electra-small-discriminator')
         self.cross_attention = CrossAttention(hidden_size)
         self.pooler = MeanPooling()
+        self.dropout = nn.Dropout(0.2)
         # Output heads for each criterion
         self.task_response_head = nn.Linear(hidden_size, 1)
         self.coherence_head = nn.Linear(hidden_size, 1)
@@ -49,10 +50,11 @@ class CustomELECTRA(nn.Module):
         task_response = self.cross_attention(essay_outputs, topic_outputs, topic_outputs)
         pooled_task_response = self.pooler(task_response, essay_attention_mask)
         pooled_essay = self.pooler(essay_outputs, essay_attention_mask)
-        
-        task_response_score = self.task_response_head(pooled_task_response)
-        coherence_score = self.coherence_head(pooled_essay)
-        lexical_resource_score = self.lexical_resource_head(pooled_essay)
-        grammatical_range_score = self.grammatical_range_head(pooled_essay)
+        dropout_essay = self.dropout(pooled_essay)
+        dropout_task_response = self.dropout(pooled_task_response)
+        task_response_score = self.task_response_head(dropout_task_response)
+        coherence_score = self.coherence_head(dropout_essay)
+        lexical_resource_score = self.lexical_resource_head(dropout_essay)
+        grammatical_range_score = self.grammatical_range_head(dropout_essay)
         
         return torch.cat([task_response_score, coherence_score, lexical_resource_score, grammatical_range_score], dim=1)
