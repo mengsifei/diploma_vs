@@ -6,7 +6,7 @@ from sklearn.metrics import mean_absolute_error, cohen_kappa_score
 def evaluate_model(model, loader, criteria, device, rubrics):
     model.eval()  # Set the document model to evaluation mode
     running_losses = {rubric: 0.0 for rubric in rubrics}
-    task_weights = [1 / len(rubrics)] * len(rubrics)
+    task_weights = [0.25, 0.25, 0.2, 0.3]
     all_preds = []
     all_targets = []
     total_samples = 0  # This will store the total samples processed per task
