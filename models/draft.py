@@ -23,11 +23,8 @@ class BaseModel(nn.Module):
         self.model = None
         self.get_model()
         self.pooler = MeanPooling()
+        # self.pooler = SoftAttention(self.model.config.hidden_size)
         self.dropout = nn.Dropout(hidden_dropout_prob)
-        self.TaskResponse = EnhancedOutputHead(self.model.config.hidden_size, 1)
-        self.CoherenceCohesion = EnhancedOutputHead(self.model.config.hidden_size, 1)
-        self.LexicalResource = EnhancedOutputHead(self.model.config.hidden_size, 1)
-        self.Grammar = EnhancedOutputHead(self.model.config.hidden_size, 1)
         self.out = nn.Linear(self.model.config.hidden_size, num_labels)
     def get_model(self):
         if self.model_name == 'electra':
@@ -47,10 +44,5 @@ class BaseModel(nn.Module):
         last_hidden_state = outputs.last_hidden_state
         pooled_output = self.pooler(last_hidden_state)
         dropout_output = self.dropout(pooled_output)
-        output1 = self.TaskResponse(dropout_output)
-        output2 = self.CoherenceCohesion(dropout_output)
-        output3 = self.LexicalResource(dropout_output)
-        output4 = self.Grammar(dropout_output)
-        
-        final_outputs = torch.cat([output1, output2, output3, output4], dim=1)
+        final_outputs = self.out(dropout_output)  # This is the logits output for each class
         return final_outputs
