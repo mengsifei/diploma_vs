@@ -18,7 +18,7 @@ def train_model(model, criteria, optimizer, scheduler, train_loader, val_loader,
         history[f'kappa_{rubric}'] = []
         history[f'mae_{rubric}'] = []
 
-    task_weights = [0.25, 0.25, 0.25, 0.25]
+    task_weights = [0.25, 0.25, 0.2, 0.3]
     
     for epoch in tqdm(range(epochs), desc="Epochs"):
         model.train()
