@@ -24,6 +24,8 @@ def train_model(model, criteria, optimizer, scheduler, train_loader, val_loader,
     
     for epoch in tqdm(range(epochs), desc="Epochs"):
         model.train()
+        for param_group in optimizer.param_groups:
+            print("Learning rate: ", param_group['lr'])
         running_loss = {rubric: 0.0 for rubric in rubrics}
         total_samples = {rubric: 0 for rubric in rubrics}
         for batch in train_loader:

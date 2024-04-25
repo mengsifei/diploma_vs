@@ -45,7 +45,7 @@ class BaseModel(nn.Module):
     def forward(self, input_ids, attention_mask, token_type_ids=None):
         outputs = self.model(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids)
         last_hidden_state = outputs.last_hidden_state
-        pooled_output = self.pooler(last_hidden_state)
+        pooled_output = self.pooler(last_hidden_state, attention_mask)
         dropout_output = self.dropout(pooled_output)
         output1 = self.TaskResponse(dropout_output)
         output2 = self.CoherenceCohesion(dropout_output)
