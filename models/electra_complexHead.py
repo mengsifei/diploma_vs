@@ -3,6 +3,19 @@ import torch.nn as nn
 import torch
 from models.poolings import *
 
+class EnhancedOutputHead(nn.Module):
+    def __init__(self, input_dim, output_dim):
+        super(EnhancedOutputHead, self).__init__()
+        self.fc1 = nn.Linear(input_dim, input_dim // 2)  # Reduce dimension
+        self.relu = nn.ReLU()
+        self.fc2 = nn.Linear(input_dim // 2, output_dim)  # Final output dimension
+
+    def forward(self, x):
+        x = self.fc1(x)
+        x = self.relu(x)
+        x = self.fc2(x)
+        return x
+
 class BaseModel(nn.Module):
     def __init__(self, model_name='electra', hidden_dropout_prob=0.2, num_labels=4):
         super(BaseModel, self).__init__()
@@ -11,10 +24,10 @@ class BaseModel(nn.Module):
         self.get_model()
         self.pooler = MeanPooling()
         self.dropout = nn.Dropout(hidden_dropout_prob)
-        self.TaskResponse = nn.Linear(self.model.config.hidden_size, 1)
-        self.CoherenceCohesion = nn.Linear(self.model.config.hidden_size, 1)
-        self.LexicalResource = nn.Linear(self.model.config.hidden_size, 1)
-        self.Grammar = nn.Linear(self.model.config.hidden_size, 1)
+        self.TaskResponse = EnhancedOutputHead(self.model.config.hidden_size, 1)
+        self.CoherenceCohesion = EnhancedOutputHead(self.model.config.hidden_size, 1)
+        self.LexicalResource = EnhancedOutputHead(self.model.config.hidden_size, 1)
+        self.Grammar = EnhancedOutputHead(self.model.config.hidden_size, 1)
         self.out = nn.Linear(self.model.config.hidden_size, num_labels)
     def get_model(self):
         if self.model_name == 'electra':
