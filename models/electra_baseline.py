@@ -21,9 +21,13 @@ class BaseModel(nn.Module):
         self.model_name = model_name
         self.model = None
         self.get_model()
+        self.hidden_size = self.model.config.hidden_size
         self.pooler = MeanPooling()
+        self.linear4 = nn.Linear(self.hidden_size, self.hidden_size)
+        self.linear8 = nn.Linear(self.hidden_size, self.hidden_size)
+        self.linear12 = nn.Linear(self.hidden_size, self.hidden_size)
         self.dropout = nn.Dropout(hidden_dropout_prob)
-        self.out = EnhancedOutputHead(self.model.config.hidden_size, num_labels)
+        self.out = nn.Linear(self.hidden_size * 3, num_labels)
     def get_model(self):
         if self.model_name == 'electra':
             self.model = ElectraModel.from_pretrained('google/electra-small-discriminator')
@@ -39,9 +43,13 @@ class BaseModel(nn.Module):
             self.model = AutoModel.from_pretrained('xlnet-base-cased')
     def forward(self, input_ids, attention_mask, token_type_ids=None):
         outputs = self.model(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids)
-        last_hidden_state = outputs.last_hidden_state
-        pooled_output = self.pooler(last_hidden_state, attention_mask)
-        dropout_output = self.dropout(pooled_output)
+        hidden_states = outputs.hidden_states
+        layer4_output = self.pooler(self.linear4(hidden_states[3]), attention_mask)
+        layer8_output = self.pooler(self.linear8(hidden_states[7]), attention_mask)
+        layer12_output = self.pooler(self.linear12(hidden_states[-1]), attention_mask)
+        concatenated_output = torch.cat((layer4_output, layer8_output, layer12_output), dim=-1)
+        dropout_output = self.dropout(concatenated_output)
         out = self.out(dropout_output)
         return out
+
         
