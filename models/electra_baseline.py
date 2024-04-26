@@ -45,7 +45,6 @@ class BaseModel(nn.Module):
         outputs = self.model(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids)
         hidden_states = outputs.hidden_states
         # layer4_output = self.pooler(self.linear4(hidden_states[3]), attention_mask)
-        print(len(hidden_states))
         layer8_output = self.pooler(self.linear8(hidden_states[8]), attention_mask)
         layer12_output = self.pooler(self.linear12(hidden_states[-1]), attention_mask)
         concatenated_output = torch.cat((layer8_output, layer12_output), dim=-1)
