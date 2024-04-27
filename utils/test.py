@@ -6,7 +6,7 @@ from datasets.augmentation_methods import *
 
 def score_essay_vanilla(topic, essay, tokenizer, model, device):
     essay = essay.replace("\n", "[SEP]")
-    combined_text = f"[TOPIC] {topic} [ESSAY] {essay}"
+    combined_text = f"[TOPIC] {topic} [TOPIC] {topic} [ESSAY] {essay}"
     inputs = tokenizer.encode_plus(    
         combined_text,
         None,
