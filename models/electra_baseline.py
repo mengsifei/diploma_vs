@@ -24,7 +24,7 @@ class BaseModel(nn.Module):
         self.hidden_size = self.model.config.hidden_size
         self.pooler = MeanPooling()
         self.dropout = nn.Dropout(hidden_dropout_prob)
-        self.out = nn.Linear(self.hidden_size * 3, num_labels)
+        self.out = nn.Linear(self.hidden_size * 2, num_labels)
     def get_model(self):
         if self.model_name == 'electra':
             self.model = ElectraModel.from_pretrained('google/electra-small-discriminator', output_hidden_states=True)
@@ -41,10 +41,9 @@ class BaseModel(nn.Module):
     def forward(self, input_ids, attention_mask, token_type_ids=None):
         outputs = self.model(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids)
         hidden_states = outputs.hidden_states
-        layer4_output = self.pooler(hidden_states[4], attention_mask)
         layer8_output = self.pooler(hidden_states[8], attention_mask)
-        layer12_output = self.pooler(hidden_states[12], attention_mask)
-        concatenated_output = torch.cat((layer4_output, layer8_output, layer12_output), dim=-1)
+        layer11_output = self.pooler(hidden_states[11], attention_mask)
+        concatenated_output = torch.cat((layer8_output, layer11_output), dim=-1)
         dropout_output = self.dropout(concatenated_output)
         out = self.out(dropout_output)
         return out
