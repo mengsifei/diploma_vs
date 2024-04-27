@@ -8,7 +8,7 @@ class CustomDataset(Dataset):
         self.text = df['essay']
         self.prompt = df['prompt']
         self.max_len = max_len
-        self.max_chunks = 4
+        self.max_chunks = 4 # , 
         self.labels = df[['Task Response', 'Coherence and Cohesion', 'Lexical Resource', 'Grammatical Range and Accuracy']].values
     def __len__(self):
         return len(self.text)
