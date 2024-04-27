@@ -41,9 +41,9 @@ class BaseModel(nn.Module):
     def forward(self, input_ids, attention_mask, token_type_ids=None):
         outputs = self.model(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids)
         hidden_states = outputs.hidden_states
-        layer1_output = self.pooler(self.linear4(hidden_states[1]), attention_mask)
-        layer8_output = self.pooler(self.linear8(hidden_states[8]), attention_mask)
-        layer11_output = self.pooler(self.linear12(hidden_states[11]), attention_mask)
+        layer1_output = self.pooler(hidden_states[1], attention_mask)
+        layer8_output = self.pooler(hidden_states[8], attention_mask)
+        layer11_output = self.pooler(hidden_states[11], attention_mask)
         concatenated_output = torch.cat((layer1_output, layer8_output, layer11_output), dim=-1)
         dropout_output = self.dropout(concatenated_output)
         out = self.out(dropout_output)
