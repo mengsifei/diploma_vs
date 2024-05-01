@@ -43,13 +43,20 @@ class ResponsePromptAttention(nn.Module):
         Q = self.W_q(responses)  # [batch_size, hidden_size]
         K = self.W_k(prompts)    # [batch_size, hidden_size]
         V = self.W_v(prompts)    # [batch_size, hidden_size]
+        print(Q.shape, K.shape, V.shape)
+        # Correct reshaping for batch matrix multiplication
+        Q = Q.unsqueeze(1)  # Reshape Q to [batch_size, 1, hidden_size]
+        K = K.unsqueeze(2)  # Reshape K to [batch_size, hidden_size, 1]
+        print(Q.shape, K.shape)
+        # Batch matrix multiplication
+        attention_logits = torch.bmm(Q, K) / self.scale
+        attention_logits = attention_logits.squeeze(2)  # Reduce to [batch_size, 1]
 
-        # Transpose for batch matrix multiplication to shape [batch_size, 1, hidden_size]
-        attention_logits = torch.bmm(Q.unsqueeze(1), K.unsqueeze(2)) / self.scale
-        attention_weights = F.softmax(attention_logits, dim=-1)  # Squeeze to remove singular dimensions
+        attention_weights = F.softmax(attention_logits, dim=1)  # Softmax over the last dimension
 
-        # Attention output vector [batch_size, hidden_size]
-        attention_output = torch.bmm(attention_weights, V.unsqueeze(1)).squeeze(1)
+        # Batch matrix multiplication for computing the weighted sum of V
+        attention_output = torch.bmm(attention_weights, V.unsqueeze(1)).squeeze(1)  # Reduce to [batch_size, hidden_size]
+
         return attention_output
 
 
@@ -59,26 +66,30 @@ class CustomELECTRA(nn.Module):
         super(CustomELECTRA, self).__init__()
         self.electra = ElectraModel.from_pretrained('google/electra-small-discriminator')
         self.response_prompt_attention = ResponsePromptAttention(hidden_size)
-        self.pooler = MeanPooling()
+        self.pooler = MeanPooling()  # Assume this can handle a concatenated mask
         self.dropout = nn.Dropout(hidden_dropout_prob)
         self.out = nn.Linear(2 * hidden_size, 4)  # Adjusted for concatenated output
 
     def forward(self, essay_input_ids, essay_attention_mask, essay_token_type_ids, topic_input_ids, topic_attention_mask, topic_token_type_ids):
+        # Get outputs from ELECTRA
         essay_outputs = self.electra(input_ids=essay_input_ids, attention_mask=essay_attention_mask, token_type_ids=essay_token_type_ids).last_hidden_state
         topic_outputs = self.electra(input_ids=topic_input_ids, attention_mask=topic_attention_mask, token_type_ids=topic_token_type_ids).last_hidden_state
         
-        pooled_essay = self.pooler(essay_outputs, essay_attention_mask)
-        pooled_topic = self.pooler(topic_outputs, topic_attention_mask)
-        
-        # Generate the attention-based response using the ResponsePromptAttention layer
-        attention_response = self.response_prompt_attention(pooled_essay, pooled_topic)
-        
-        # Concatenate the pooled essay with the attention response
-        concatenated_output = torch.cat([pooled_essay, attention_response], dim=-1)
-        
-        # Apply dropout to the concatenated output
-        dropout_output = self.dropout(concatenated_output)
+        # Generate attention response
+        attention_response = self.response_prompt_attention(essay_outputs, topic_outputs)
+
+        # Concatenate outputs and attention responses
+        concatenated_output = torch.cat([essay_outputs, attention_response], dim=-1)
+
+        # Concatenate attention masks to match the concatenated outputs
+        # Assuming essay and topic outputs are the same length
+        concatenated_mask = torch.cat([essay_attention_mask, topic_attention_mask], dim=1)
+
+        # Pool the concatenated outputs using the concatenated mask
+        pooled_output = self.pooler(concatenated_output, concatenated_mask)
+
+        # Apply dropout to the pooled output
+        dropout_output = self.dropout(pooled_output)
         
         # Output layer
         return self.out(dropout_output)
-
