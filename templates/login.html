@@ -2,7 +2,7 @@
 
 {% block content %}
 <div class="container">
-    <h2>Login</h2>
+    <h2 class="center-text">Login</h2>
     <form method="POST">
         <div class="mb-3">
             <label for="email" class="form-label">Email:</label>
@@ -13,7 +13,9 @@
             <input type="password" class="form-control" id="password" name="password" required>
         </div>
         <input type="hidden" id="message" value="{{ message }}">
-        <button type="submit" class="btn btn-primary">Login</button>
+        <div class="btn-center">
+            <button type="submit" class="btn btn-primary">Login</button>
+        </div>
     </form>
     <!-- Modal HTML -->
     <div class="modal fade" id="loginAlertModal" tabindex="-1" role="dialog" aria-labelledby="loginModalLabel" aria-hidden="true">

@@ -1,5 +1,4 @@
 from flask import Flask, request, render_template, redirect, url_for, session, flash
-import re
 import torch
 from models.electra_baseline import BaseModel
 from utils.test import score_essay_vanilla
@@ -8,7 +7,6 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
-
 
 model = BaseModel()
 model.load_state_dict(torch.load('checkpoints/best_model_electra_8_11_AdamW.pth', map_location=torch.device('cpu')))
@@ -186,7 +184,7 @@ def infer():
     return render_template('infer.html', result=scores)
 
 with app.app_context():
-    # db.drop_all()
+    # db.dr op_all()
     db.create_all()
 
 if __name__ == '__main__':

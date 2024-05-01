@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="container">
-    <h2>Register</h2>
+    <h2 class="center-text">Register</h2>
     <form method="POST" id="registrationForm">
         <div class="mb-3">
             <label for="email" class="form-label">Email:</label>
@@ -22,7 +22,9 @@
             <small id="passwordHelp" class="form-text text-muted">Your password should be more than 8 symbols.</small>
         </div>
         <input type="hidden" id="message" value="{{ message }}">
-        <button type="submit" class="btn btn-primary">Register</button>
+        <div class="btn-center">
+            <button type="submit" class="btn btn-primary">Register</button>
+        </div>
     </form>
 
     <!-- Registration Alert Modal -->
@@ -47,8 +49,10 @@
 <script>
     $(document).ready(function() {
         var message = $('#message').val();
-        $('#registrationAlertModal .modal-body').text(message);
-        $('#registrationAlertModal').modal('show');
-    });
+        if (message) {
+            $('#registrationAlertModal .modal-body').text(message);
+            $('#registrationAlertModal').modal('show');
+        }
+    }); 
 </script>
 {% endblock %}
