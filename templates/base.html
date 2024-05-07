@@ -3,88 +3,15 @@
 <head>
     <title>{% block title %}{% endblock %}</title>
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body, h1, h2, h3, p, a {
-            font-family: 'Georgia', serif;
-        }
-        body {
-            background: url('/static/stone_background.jpg') no-repeat center center fixed; 
-            -webkit-background-size: cover;
-            -moz-background-size: cover;
-            -o-background-size: cover;
-            background-size: cover;
-        }
-        .footer {
-            position: fixed;
-            left: 0;
-            bottom: 0;
-            width: 100%;
-            background-color: #f8f9fa;
-            color: black;
-            text-align: center;
-        }
-        .navbar {
-            margin-bottom: 20px; /* Adjust the space below the navbar */
-        }
-        .center-text {
-            text-align: center;
-        }
-        .btn-center {
-            display: flex;
-            justify-content: center;
-        }
-        input[type="text"], textarea {
-            background-color: rgba(255, 255, 255, 0.5); /* Semi-transparent text boxes */
-            border: 1px solid #ccc;
-            color: #333;
-        }
-        .btn-primary {
-            background-color: #505050; /* Dark grey buttons */
-            border-color: #404040;
-        }
-        .btn-primary:hover {
-            background-color: #404040; /* Darker on hover */
-            border-color: #303030;
-        }
-        h1 {
-            color: #505050; /* Dark grey titles */
-            padding-top: 20px; /* Space from nav bar */
-        }
-        h2 {
-            color: #505050; /* Dark grey titles */
-            padding-top: 20px; /* Space from nav bar */
-        }
-        .table td, .table th {
-        text-align: left;
-        vertical-align: middle;
-        }
-        .text-center {
-            margin-top: 20px; /* Spacing above the delete button */
-        }
-        .btn-danger {
-            width: 200px; /* Specify a width for the delete button if necessary */
-        }
-        .form-text.text-muted {
-            color: #343a40 !important; /* Bootstrap's dark gray, change as needed */
-        }
-        .btn-toggle {
-            border: none;
-            background: none;
-            color: #007bff; /* Bootstrap primary color */
-            cursor: pointer;
-        }
-        .content-hidden {
-            display: none;
-        }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <nav class="navbar navbar-expand-lg">
         <div class="container-fluid">
             <a class="nav-link" href="{{ url_for('index') }}">Home</a>
             <a class="nav-link" href="{{ url_for('about_us') }}">About Us</a>
             {% if current_user.is_authenticated %}
-                <a class="nav-link" href="{{ url_for('dashboard') }}">{{ current_user.nickname }}</a>
+                <a class="nav-link" href="{{ url_for('dashboard') }}">Logged in as {{ current_user.nickname }}</a>
                 <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
             {% else %}
                 <span class="navbar-text">
@@ -125,7 +52,6 @@
             </div>
         </div>
     </div>
-
 
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.0/dist/umd/popper.min.js"></script>

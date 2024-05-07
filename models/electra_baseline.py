@@ -2,18 +2,6 @@ from transformers import ElectraModel, BertModel, DebertaModel, GPT2Model, AutoM
 import torch.nn as nn
 import torch
 from models.poolings import *
-class EnhancedOutputHead(nn.Module):
-    def __init__(self, input_dim, output_dim):
-        super(EnhancedOutputHead, self).__init__()
-        self.fc1 = nn.Linear(input_dim, input_dim // 2)  # Reduce dimension
-        self.relu = nn.ReLU()
-        self.fc2 = nn.Linear(input_dim // 2, output_dim)  # Final output dimension
-
-    def forward(self, x):
-        x = self.fc1(x)
-        x = self.relu(x)
-        x = self.fc2(x)
-        return x
 
 class BaseModel(nn.Module):
     def __init__(self, model_name='electra', hidden_dropout_prob=0.2, num_labels=4):
@@ -45,6 +33,22 @@ class BaseModel(nn.Module):
         layer11_output = self.pooler(hidden_states[11], attention_mask)
         concatenated_output = torch.cat((layer8_output, layer11_output), dim=-1)
         dropout_output = self.dropout(concatenated_output)
+        out = self.out(dropout_output)
+        return out
+
+class BaseModel(nn.Module):
+    def __init__(self, hidden_dropout_prob=0.2, num_labels=4):
+        super(BaseModel, self).__init__()
+        self.model = ElectraModel.from_pretrained('google/electra-small-discriminator', output_hidden_states=True)
+        self.hidden_size = self.model.config.hidden_size
+        self.pooler = MeanPooling()
+        self.dropout = nn.Dropout(hidden_dropout_prob)
+        self.out = nn.Linear(self.hidden_size, num_labels)
+    def forward(self, input_ids, attention_mask, token_type_ids=None):
+        outputs = self.model(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids)
+        hidden_states = outputs.hidden_states
+        layer12_output = self.pooler(hidden_states[-1], attention_mask)
+        dropout_output = self.dropout(layer12_output)
         out = self.out(dropout_output)
         return out
 

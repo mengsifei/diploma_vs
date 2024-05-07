@@ -1,0 +1,8 @@
+/project
+    /app
+        __init__.py  # Initialize the Flask app
+        models.py  # Database models
+        errors.py  # Error handlers
+        auth.py  # User management and login-related routes
+        routes.py  # Main application routes
+    run.py  # Main entry point

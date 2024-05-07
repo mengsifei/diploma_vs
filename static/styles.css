@@ -1,0 +1,172 @@
+:root {
+    --background-color: rgb(52, 45, 53);
+    --navbar-color: var(--background-color);
+    --footer-background-color: var(--background-color);
+    --footer-text-color: rgb(145, 128, 128);
+    --title-color: #d6cdcd;
+    --button-bg-color: #505050;
+    --button-hover-bg-color: #404040;
+    --button-border-color: #404040;
+    --button-hover-border-color: #303030;
+    --input-bg-color: rgba(255, 255, 255, 0.5); /* Adjust this for transparency */
+    --input-text-color: #d6cdcd;
+    --alert-color: var(--input-text-color);
+    --toggle-color: #475a6e;
+    --link-color: var(--title-color);
+    --link-hover-color: var(--title-color);
+    --modal-background-color: rgb(52, 45, 53);
+    --modal-text-color: #d6cdcd;
+}
+
+input[type="text"], input[type="email"], input[type="password"], textarea {
+    background-color: var(--input-bg-color); /* Use variable for consistent coloring */
+    border: 1px solid #ccc; /* Adjust border color to desired style */
+    color: var(--input-text-color); /* Text color inside the textarea */
+    border-radius: 4px; /* Adjust radius as needed */
+    padding: 10px; /* Provide spacing around the inner text */
+}
+
+textarea {
+    resize: vertical; /* Allows resizing in the vertical direction only */
+    overflow-y: auto; /* Enables a vertical scrollbar if content overflows */
+}
+
+/* Modal Styles */
+.modal-content {
+    background-color: var(--modal-background-color);
+    color: var(--modal-text-color);
+}
+
+.modal-header .close {
+    color: var(--modal-text-color);
+}
+
+/* General Styles */
+body, h1, h2, h3, p, a {
+    font-family: 'Georgia', serif;
+}
+
+body {
+    background-color: var(--background-color);
+    color: var(--title-color);
+    -webkit-background-size: cover;
+    -moz-background-size: cover;
+    -o-background-size: cover;
+    background-size: cover;
+}
+
+table {
+    margin-top: 20px;
+    color: var(--title-color);
+}
+
+thead {
+    color: var(--title-color);
+}
+
+tbody {
+    color: var(--title-color);
+}
+.footer {
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    background-color: var(--footer-background-color);
+    color: var(--footer-text-color);
+    text-align: center;
+}
+
+.navbar {
+    margin-bottom: 20px;
+    background-color: var(--navbar-color);
+}
+
+a.nav-link {
+    color: var(--link-color);
+    text-decoration: none;
+}
+
+a.nav-link:hover {
+    color: var(--link-hover-color);
+}
+
+.center-text {
+    text-align: center;
+}
+
+.btn-center {
+    display: flex;
+    justify-content: center;
+}
+
+.footer a {
+    color: var(--link-color);
+    text-decoration: none;
+}
+
+.footer a:hover {
+    color: var(--link-hover-color);
+}
+
+textarea {
+    /* background-color: var(--input-bg-color); */
+    background-color: #1e0606 ;
+    border: 1px solid #ccc;
+    resize: vertical; /* Allows resizing in the vertical direction */
+    overflow-y: auto; /* Enables a vertical scrollbar if content overflows */
+}
+
+.btn-primary {
+    background-color: var(--button-bg-color);
+    border-color: var(--button-border-color);
+    margin-bottom: 20px;
+}
+
+.btn-primary:hover {
+    background-color: var(--button-hover-bg-color);
+    border-color: var(--button-hover-border-color);
+}
+
+h1, h2 {
+    color: var(--title-color);
+    padding-top: 20px;
+}
+
+.table td, .table th {
+    text-align: left;
+    vertical-align: middle;
+}
+
+.text-center {
+    margin-top: 20px;
+}
+
+.btn-danger {
+    width: 200px;
+}
+
+.form-text.text-muted {
+    color: var(--alert-color) !important;
+}
+
+.btn-toggle {
+    border: none;
+    background: none;
+    color: var(--toggle-color);
+    cursor: pointer;
+}
+
+.content-hidden {
+    display: none;
+}
+
+/* Alert Modal Styles */
+.modal-content {
+    background-color: var(--modal-background-color);
+    color: var(--modal-text-color);
+}
+
+.modal-header .close {
+    color: var(--modal-text-color);
+}
