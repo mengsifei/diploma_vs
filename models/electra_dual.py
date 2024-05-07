@@ -1,60 +1,60 @@
-from torch.nn import LayerNorm
-import math
+import torch
+import torch.nn as nn
 import torch.nn.functional as F
 from transformers import ElectraModel
-import torch.nn as nn
-import torch
-from models.poolings import *
 
-class CrossAttention(nn.Module):
+class ResponseAttention(nn.Module):
     def __init__(self, hidden_size):
-        super().__init__()
-        self.query = nn.Linear(hidden_size, hidden_size)
-        self.key = nn.Linear(hidden_size, hidden_size)
-        self.value = nn.Linear(hidden_size, hidden_size)
-        self.scale = math.sqrt(hidden_size)
-        self.norm = LayerNorm(hidden_size)
+        super(ResponseAttention, self).__init__()
+        self.W_q = nn.Linear(hidden_size, hidden_size)
+        self.W_k = nn.Linear(hidden_size, hidden_size)
+        self.W_v = nn.Linear(hidden_size, hidden_size)
+        self.scale = torch.sqrt(torch.tensor(hidden_size, dtype=torch.float))
 
-    def forward(self, queries, keys, values, mask=None):
-        Q = self.query(queries)
-        K = self.key(keys)
-        V = self.value(values)
+    def forward(self, x, relative_pos):
+        Q = self.W_q(x)
+        K = self.W_k(x)
+        V = self.W_v(x)
+        
+        # Calculate attention scores with relative position embeddings
+        scores = torch.bmm(Q, K.transpose(1, 2)) / self.scale + torch.bmm(Q, self.W_k(relative_pos).transpose(1, 2)) / self.scale
+        weights = F.softmax(scores, dim=-1)
+        return torch.bmm(weights, V)
 
-        attention_scores = torch.einsum('bik,bjk->bij', Q, K) / self.scale
-        if mask is not None:
-            attention_scores = attention_scores.masked_fill(mask == 0, float('-inf'))
+class ResponsePromptAttention(nn.Module):
+    def __init__(self, hidden_size):
+        super(ResponsePromptAttention, self).__init__()
+        self.W_q = nn.Linear(hidden_size, hidden_size)
+        self.W_k = nn.Linear(hidden_size, hidden_size)
+        self.W_v = nn.Linear(hidden_size, hidden_size)
 
-        attention_probs = F.softmax(attention_scores, dim=-1)
-        context = torch.matmul(attention_probs, V)
-        context = self.norm(context)  # Apply LayerNorm to the output context
-        return context
+    def forward(self, response, prompt):
+        z = self.W_q(response)
+        p = self.W_k(prompt)
+        v = self.W_v(prompt)
+        
+        scores = torch.bmm(z, p.transpose(1, 2)) / torch.sqrt(torch.tensor(response.size(-1), dtype=torch.float))
+        weights = F.softmax(scores, dim=-1)
+        return torch.bmm(weights, v)
 
-
-class CustomELECTRA(nn.Module):
+class EssayScoringModel(nn.Module):
     def __init__(self, hidden_size=256):
-        super(CustomELECTRA, self).__init__()
-        self.electra = ElectraModel.from_pretrained('google/electra-small-discriminator')
-        self.cross_attention = CrossAttention(hidden_size)
-        self.pooler = MeanPooling()
-        self.dropout = nn.Dropout(0.2)
-        # Output heads for each criterion
-        self.task_response_head = nn.Linear(hidden_size, 1)
-        self.coherence_head = nn.Linear(hidden_size, 1)
-        self.lexical_resource_head = nn.Linear(hidden_size, 1)
-        self.grammatical_range_head = nn.Linear(hidden_size, 1)
+        super(EssayScoringModel, self).__init__()
+        self.model = ElectraModel.from_pretrained('google/electra-small-discriminator')
+        self.response_attention = ResponseAttention(hidden_size)
+        self.response_prompt_attention = ResponsePromptAttention(hidden_size)
+        self.regression = nn.Linear(hidden_size * 2, 4)
 
     def forward(self, essay_input_ids, essay_attention_mask, essay_token_type_ids, topic_input_ids, topic_attention_mask, topic_token_type_ids):
-        essay_outputs = self.electra(input_ids=essay_input_ids, attention_mask=essay_attention_mask, token_type_ids=essay_token_type_ids).last_hidden_state
-        topic_outputs = self.electra(input_ids=topic_input_ids, attention_mask=topic_attention_mask, token_type_ids=topic_token_type_ids).last_hidden_state
-
-        task_response = self.cross_attention(essay_outputs, topic_outputs, topic_outputs)
-        pooled_task_response = self.pooler(task_response, essay_attention_mask)
-        pooled_essay = self.pooler(essay_outputs, essay_attention_mask)
-        dropout_essay = self.dropout(pooled_essay)
-        dropout_task_response = self.dropout(pooled_task_response)
-        task_response_score = self.task_response_head(dropout_task_response)
-        coherence_score = self.coherence_head(dropout_essay)
-        lexical_resource_score = self.lexical_resource_head(dropout_essay)
-        grammatical_range_score = self.grammatical_range_head(dropout_essay)
+        # Handle essay and prompts with model
+        essay_emb = self.model(input_ids=essay_input_ids, attention_mask=essay_attention_mask, token_type_ids=essay_token_type_ids)[0]
+        prompt_emb = self.model(input_ids=topic_input_ids, attention_mask=topic_attention_mask, token_type_ids=topic_token_type_ids)[0]
         
-        return torch.cat([task_response_score, coherence_score, lexical_resource_score, grammatical_range_score], dim=1)
+        # Apply self-attention and response-prompt attention
+        response_vector = self.response_attention(essay_emb, essay_emb)[:, 0, :]  # Assume using the CLS token
+        prompt_attention_vector = self.response_prompt_attention(response_vector.unsqueeze(1), prompt_emb)[:, 0, :]
+        
+        # Regression for scoring
+        combined_vector = torch.cat([response_vector, prompt_attention_vector], dim=1)
+        score = self.regression(combined_vector)
+        return score
