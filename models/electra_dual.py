@@ -44,17 +44,17 @@ class EssayScoringModel(nn.Module):
         self.response_attention = ResponseAttention(hidden_size)
         self.response_prompt_attention = ResponsePromptAttention(hidden_size)
         self.regression = nn.Linear(hidden_size * 2, 4)
-
+        self.dropout = nn.Dropout(0.2)
     def forward(self, essay_input_ids, essay_attention_mask, essay_token_type_ids, topic_input_ids, topic_attention_mask, topic_token_type_ids):
         # Handle essay and prompts with model
-        essay_emb = self.model(input_ids=essay_input_ids, attention_mask=essay_attention_mask, token_type_ids=essay_token_type_ids)[0]
-        prompt_emb = self.model(input_ids=topic_input_ids, attention_mask=topic_attention_mask, token_type_ids=topic_token_type_ids)[0]
+        essay_emb = self.model(input_ids=essay_input_ids, attention_mask=essay_attention_mask, token_type_ids=essay_token_type_ids)[0][:, 0]
+        prompt_emb = self.model(input_ids=topic_input_ids, attention_mask=topic_attention_mask, token_type_ids=topic_token_type_ids)[0][:, 0]
         
         # Apply self-attention and response-prompt attention
-        response_vector = self.response_attention(essay_emb, essay_emb)[:, 0, :]  # Assume using the CLS token
-        prompt_attention_vector = self.response_prompt_attention(response_vector.unsqueeze(1), prompt_emb)[:, 0, :]
+        # response_vector = self.response_attention(essay_emb, essay_emb)[:, 0, :]  # Assume using the CLS token
+        # prompt_attention_vector = self.response_prompt_attention(response_vector.unsqueeze(1), prompt_emb)[:, 0, :]
         
         # Regression for scoring
-        combined_vector = torch.cat([response_vector, prompt_attention_vector], dim=1)
-        score = self.regression(combined_vector)
+        combined_vector = torch.cat([essay_emb, prompt_emb], dim=1)
+        score = self.regression(self.dropout(combined_vector))
         return score
