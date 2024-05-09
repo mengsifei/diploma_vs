@@ -4,11 +4,12 @@
 
 {% block content %}
 <div class="container mt-4">
-    <!-- Toggle Button for Sidebar -->
-    <button class="btn btn-primary" id="toggle-sidebar" style="position: fixed; top: 10px; left: 10px;">☰</button>
-
-    <!-- Sidebar (Initially Hidden) -->
+    <!-- Sidebar with Toggle Button Inside -->
     <div id="sidebar" class="sidebar">
+        <!-- Sidebar Toggle Button -->
+        <button class="btn btn-primary" id="toggle-sidebar" style="position: absolute; top: 350px; right: -45px; z-index: 999;">☰</button>
+
+        <!-- Sidebar Content -->
         <div class="sidebar-content">
             <h3 id="countdown-timer" contenteditable="true">5:00</h3> <!-- Starting value -->
             <button class="btn btn-info mt-2 mr-2" id="start-countdown">Start</button>
@@ -17,8 +18,6 @@
                 <label for="draft-text">Draft Text:</label>
                 <textarea id="draft-text" class="form-control" rows="8" placeholder="Type your draft here..."></textarea>
             </div>
-            <!-- Add a button inside the sidebar to close it -->
-            <button class="btn btn-secondary mt-4" id="close-sidebar">Close Sidebar</button>
         </div>
     </div>
 
@@ -67,17 +66,30 @@
 <script>
     $(document).ready(function() {
         // Toggle visibility of the sidebar
-        $('#toggle-sidebar, #close-sidebar').on('click', function() {
+        $('#toggle-sidebar').on('click', function() {
             const sidebar = $('#sidebar');
             sidebar.toggleClass('active');
 
             // Update the toggle button icon/text based on the sidebar state
             if (sidebar.hasClass('active')) {
-                $('#toggle-sidebar').text("✖");
+                $(this).text("✖");
             } else {
-                $('#toggle-sidebar').text("☰");
+                $(this).text("☰");
             }
         });
+
+        // Close the sidebar via the "Close Sidebar" button inside the sidebar
+        $('#close-sidebar').on('click', function() {
+            const sidebar = $('#sidebar');
+            sidebar.removeClass('active');
+            $('#toggle-sidebar').text("☰");
+        });
+
+        // Show the alert modal if the form was submitted with empty fields
+        var isEmpty = $('#isempty').val() === 'True';
+        if (isEmpty) {
+            $('#alertModal').modal('show');
+        }
 
         // Prevent form submission with Enter and insert a new line instead
         $('#essay').on('keydown', function(e) {
