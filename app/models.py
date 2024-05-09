@@ -1,22 +1,8 @@
+from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
-from transformers import ElectraTokenizer
-from models.electra_baseline import BaseModel
-from utils.test import score_essay_vanilla
 from . import db
-
-class ElectraScoring:
-    def __init__(self, model_path='checkpoints/best_model_electra_8_11_AdamW.pth'):
-        self.tokenizer = ElectraTokenizer.from_pretrained('google/electra-small-discriminator')
-        self.model = BaseModel()
-        # self.model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
-        self.model.eval()
-
-    def score_essay(self, topic, essay):
-        """Perform scoring using the loaded model."""
-        scores = score_essay_vanilla(topic, essay, self.tokenizer, self.model, 'cpu')
-        return scores.tolist()
 
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)

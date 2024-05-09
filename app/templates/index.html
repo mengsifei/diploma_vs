@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+
+{% block title %}Home Page{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Toggle Button for Sidebar -->
+    <button class="btn btn-primary" id="toggle-sidebar" style="position: fixed; top: 10px; left: 10px;">☰</button>
+
+    <!-- Sidebar (Initially Hidden) -->
+    <div id="sidebar" class="sidebar">
+        <div class="sidebar-content">
+            <h3 id="countdown-timer" contenteditable="true">5:00</h3> <!-- Starting value -->
+            <button class="btn btn-info mt-2 mr-2" id="start-countdown">Start</button>
+            <button class="btn btn-danger mt-2" id="stop-countdown">Stop</button>
+            <div class="mt-4">
+                <label for="draft-text">Draft Text:</label>
+                <textarea id="draft-text" class="form-control" rows="8" placeholder="Type your draft here..."></textarea>
+            </div>
+            <!-- Add a button inside the sidebar to close it -->
+            <button class="btn btn-secondary mt-4" id="close-sidebar">Close Sidebar</button>
+        </div>
+    </div>
+
+    <!-- Main Content: Essay Topic and Essay Content -->
+    <div style="margin-left: 30px;"> <!-- Adjust based on sidebar width -->
+        <h1 class="center-text">Enter Topic and Essay for Prediction</h1>
+        <form method="post" class="mt-4" id="essayForm">
+            <div class="mb-3">
+                <label for="topic" class="form-label">Essay Topic:</label>
+                <input type="text" id="topic" name="topic" class="form-control" autocomplete="off">
+            </div>
+            <div class="mb-3">
+                <label for="essay" class="form-label">Essay Content:</label>
+                <textarea style="background-color:rgba(255, 255, 255, 0.5);" id="essay" name="essay" class="form-control" rows="8" autocomplete="off"></textarea>
+            </div>
+            <div class="btn-center">
+                <button type="submit" class="btn btn-primary">Submit</button>
+            </div>
+            <input type="hidden" id="isempty" value="{{ isempty }}">
+        </form>
+    </div>
+
+    <!-- Alert Modal -->
+    <div class="modal fade" id="alertModal" tabindex="-1" role="dialog" aria-labelledby="alertModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="alertModalLabel">Alert</h5>
+                    <button type="button" class="close" data-dismiss="modal">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    Please provide both a topic and an essay text.
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">OK</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    $(document).ready(function() {
+        // Toggle visibility of the sidebar
+        $('#toggle-sidebar, #close-sidebar').on('click', function() {
+            const sidebar = $('#sidebar');
+            sidebar.toggleClass('active');
+
+            // Update the toggle button icon/text based on the sidebar state
+            if (sidebar.hasClass('active')) {
+                $('#toggle-sidebar').text("✖");
+            } else {
+                $('#toggle-sidebar').text("☰");
+            }
+        });
+
+        // Prevent form submission with Enter and insert a new line instead
+        $('#essay').on('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault(); // Prevent form submission
+                var start = this.selectionStart;
+                var end = this.selectionEnd;
+                var text = this.value;
+                this.value = text.substring(0, start) + "\n" + text.substring(end);
+                this.selectionStart = this.selectionEnd = start + 1;
+            }
+        });
+
+        // Countdown Timer Logic
+        let countdownSeconds;
+        const countdownDisplay = document.getElementById("countdown-timer");
+        let countdownInterval;
+
+        function updateCountdown() {
+            const minutes = Math.floor(countdownSeconds / 60);
+            const seconds = countdownSeconds % 60;
+            countdownDisplay.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            countdownSeconds--;
+            if (countdownSeconds >= 0) {
+                countdownInterval = setTimeout(updateCountdown, 1000);
+            } else {
+                countdownDisplay.textContent = "Time's up!";
+            }
+        }
+
+        $('#start-countdown').on('click', function() {
+            const time = countdownDisplay.textContent.trim();
+            const timeParts = time.split(':');
+            const minutesInput = parseInt(timeParts[0], 10) || 0;
+            const secondsInput = parseInt(timeParts[1], 10) || 0;
+            countdownSeconds = minutesInput * 60 + secondsInput;
+
+            clearTimeout(countdownInterval); // Clear any existing countdown
+            updateCountdown(); // Start the countdown
+        });
+
+        $('#stop-countdown').on('click', function() {
+            clearTimeout(countdownInterval); // Stop the countdown timer
+        });
+    });
+</script>
+{% endblock %}

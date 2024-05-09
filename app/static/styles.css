@@ -1,7 +1,7 @@
 :root {
-    --background-color: rgb(52, 45, 53);
-    --navbar-color: var(--background-color);
-    --footer-background-color: var(--background-color);
+    --background-color: rgb(46, 44, 46);
+    --navbar-color: rgb(52, 45, 53, 0.0);
+    --footer-background-color: var(--navbar-color);
     --footer-text-color: rgb(145, 128, 128);
     --title-color: #d6cdcd;
     --button-bg-color: #505050;
@@ -11,14 +11,53 @@
     --input-bg-color: rgba(255, 255, 255, 0.5); /* Adjust this for transparency */
     --input-text-color: #d6cdcd;
     --alert-color: var(--input-text-color);
-    --toggle-color: #475a6e;
+    --toggle-color: #45586d;
     --link-color: var(--title-color);
     --link-hover-color: var(--title-color);
-    --modal-background-color: rgb(52, 45, 53);
-    --modal-text-color: #d6cdcd;
+    --modal-background-color: var(--background-color);
+    --modal-text-color: var(--title-color);
 }
 
-input[type="text"], input[type="email"], input[type="password"], textarea {
+#particles-js {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: var(--background-color);
+    background-image: url("");
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: 50% 50%;
+    z-index: -1;
+}
+
+
+/* Add this to your CSS file
+#particles-js {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background-color: rgb(19, 18, 19);
+    z-index: -1;
+} */
+
+body {
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    color: var(--title-color);
+    font-family: 'Georgia', serif;
+    -webkit-background-size: cover;
+    -moz-background-size: cover;
+    -o-background-size: cover;
+    background-size: cover;
+}
+
+input[type="text"], input[type="email"], input[type="password"] {
     background-color: var(--input-bg-color); /* Use variable for consistent coloring */
     border: 1px solid #ccc; /* Adjust border color to desired style */
     color: var(--input-text-color); /* Text color inside the textarea */
@@ -27,6 +66,8 @@ input[type="text"], input[type="email"], input[type="password"], textarea {
 }
 
 textarea {
+    background-color:transparent;  
+    background:  transparent;
     resize: vertical; /* Allows resizing in the vertical direction only */
     overflow-y: auto; /* Enables a vertical scrollbar if content overflows */
 }
@@ -34,7 +75,9 @@ textarea {
 /* Modal Styles */
 .modal-content {
     background-color: var(--modal-background-color);
-    color: var(--modal-text-color);
+    /* color: var(--modal-text-color); */
+    color: var(--modal-background-color);
+    z-index: 1050; 
 }
 
 .modal-header .close {
@@ -44,15 +87,7 @@ textarea {
 /* General Styles */
 body, h1, h2, h3, p, a {
     font-family: 'Georgia', serif;
-}
-
-body {
-    background-color: var(--background-color);
-    color: var(--title-color);
-    -webkit-background-size: cover;
-    -moz-background-size: cover;
-    -o-background-size: cover;
-    background-size: cover;
+    text-align: center;
 }
 
 table {
@@ -67,14 +102,16 @@ thead {
 tbody {
     color: var(--title-color);
 }
+
 .footer {
-    position: fixed;
-    left: 0;
-    bottom: 0;
-    width: 100%;
     background-color: var(--footer-background-color);
     color: var(--footer-text-color);
+    padding: 10px;
     text-align: center;
+    margin-top: 20px;
+    position: relative;
+    bottom: 0;
+    width: 100%;
 }
 
 .navbar {
@@ -143,7 +180,11 @@ h1, h2 {
 }
 
 .btn-danger {
-    width: 200px;
+    width: 100px;
+}
+
+.btn-info {
+    width: 100px;
 }
 
 .form-text.text-muted {
@@ -161,6 +202,9 @@ h1, h2 {
     display: none;
 }
 
+.container {
+    flex: 1; /* Ensures that the content expands to fill available space */
+}
 /* Alert Modal Styles */
 .modal-content {
     background-color: var(--modal-background-color);
@@ -169,4 +213,71 @@ h1, h2 {
 
 .modal-header .close {
     color: var(--modal-text-color);
+}
+
+.flip-card {
+    background-color: transparent;
+    width: 100%;
+    height: 200px;
+    perspective: 1000px;
+}
+
+.flip-card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    text-align: center;
+    transition: transform 0.8s;
+    transform-style: preserve-3d;
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
+}
+
+.flip-card:hover .flip-card-inner {
+    transform: rotateY(180deg);
+}
+
+.flip-card-front,
+.flip-card-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.flip-card-front {
+    background-color: #313840;
+    color: white;
+}
+
+.flip-card-back {
+    background-color: #8fa2b5;
+    color: black;
+    transform: rotateY(180deg);
+}
+
+/* Sidebar styles */
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: -300px; /* Initially hidden to the left */
+    width: 300px;
+    height: 100%;
+    background-color: #343a40; /* Adjust color as needed */
+    color: white;
+    transition: 0.3s; /* Smooth transition for sliding effect */
+    z-index: 1000; /* Keep it above the main content */
+}
+
+.sidebar.active {
+    left: 0; /* Reveal the sidebar by moving it into view */
+}
+
+.sidebar-content {
+    padding: 20px;
 }

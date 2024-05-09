@@ -1,0 +1,316 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="center-text">Dashboard</h2>
+    <form method="POST" action="{{ url_for('dashboard.delete_histories') }}">
+        <!-- Plots Section -->
+        <div class="row mt-4">
+            <div class="col-lg-6 mb-4">
+                <h4>Rubric Score Dynamics</h4>
+                <canvas id="RubricChart"></canvas>
+            </div>
+            <div class="col-lg-6 mb-4">
+                <h4>Number of Essays Checked per Day</h4>
+                <canvas id="EssayCountChart"></canvas>
+            </div>
+        </div>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th scope="col">#</th>
+                    <th scope="col"><input id="select-all" type="checkbox" onclick="selectAll(this)"></th>
+                    <th scope="col">Time</th>
+                    <th scope="col">Topic</th>
+                    <th scope="col">Essay</th>
+                    <th scope="col">Task Response</th>
+                    <th scope="col">Coherence and Cohesion</th>
+                    <th scope="col">Lexical Resource</th>
+                    <th scope="col">Grammatical Range and Accuracy</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for history in histories %}
+                    <tr>
+                        <td>{{ loop.index }}</td> <!-- loop.index will yield a 1-based index -->
+                        <td><input type="checkbox" name="history_ids" value="{{ history.id }}"></td>
+                        <td>{{ history.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                        <td onclick="showModal('{{ history.topic }}')">{{ history.topic | truncate(10) }}</td>
+                        <td onclick="showModal('{{ history.essay }}')">{{ history.essay | truncate(100) }}</td>
+                        <td>{{ history.score_tr | int }}</td>
+                        <td>{{ history.score_cc | int }}</td>
+                        <td>{{ history.score_lr | int }}</td>
+                        <td>{{ history.score_gra | int }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <div class="text-center">
+            <button type="submit" class="btn btn-danger">Delete Selected</button>
+        </div>
+    </form>
+    
+<!-- Page Navigation for Pagination -->
+<nav aria-label="Page navigation example" style="margin-top: 50px;">
+    <ul class="pagination justify-content-center">
+      {% if pagination.has_prev %}
+      <li class="page-item">
+          <a class="page-link" href="{{ url_for('dashboard.dashboard', page=pagination.prev_num) }}">Previous</a>
+      </li>
+      {% else %}
+      <li class="page-item disabled"><span class="page-link">Previous</span></li>
+      {% endif %}
+  
+      {% for page in pagination.iter_pages(left_edge=2, left_current=1, right_current=2, right_edge=2) %}
+      <li class="page-item {{ 'active' if page == pagination.page else '' }}">
+          {% if page %}
+          <a class="page-link" href="{{ url_for('dashboard.dashboard', page=page) }}">{{ page }}</a>
+          {% else %}
+          <span class="page-link">...</span>
+          {% endif %}
+      </li>
+      {% endfor %}
+  
+      {% if pagination.has_next %}
+      <li class="page-item">
+          <a class="page-link" href="{{ url_for('dashboard.dashboard', page=pagination.next_num) }}">Next</a>
+      </li>
+      {% else %}
+      <li class="page-item disabled"><span class="page-link">Next</span></li>
+      {% endif %}
+    </ul>
+  </nav>
+</div>
+<!-- Modal for displaying full topic or essay content -->
+<div class="modal fade" id="contentModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Full Content</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" style="max-height:400px; overflow-y:auto;">
+                <p id="content-text"></p>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
+<script>
+// JavaScript function to update and show the modal with content
+function showModal(content) {
+    document.getElementById('content-text').innerText = content;
+    $('#contentModal').modal('show');
+}
+</script>
+
+
+<script>
+// JavaScript for the 'Select All' checkbox functionality
+function selectAll(source) {
+    checkboxes = document.querySelectorAll('input[type="checkbox"]');
+    for (var i = 0; i < checkboxes.length; i++) {
+        if (checkboxes[i] != source)
+            checkboxes[i].checked = source.checked;
+    }
+}
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Data preparation using variables passed from Flask
+    const scoresTR = JSON.parse('{{ scores_tr|tojson|safe }}');
+    const scoresCC = JSON.parse('{{ scores_cc|tojson|safe }}');
+    const scoresLR = JSON.parse('{{ scores_lr|tojson|safe }}');
+    const scoresGRA = JSON.parse('{{ scores_gra|tojson|safe }}');
+    const creationTimes = JSON.parse('{{ creation_times|tojson|safe }}');
+    const essayNumbers = [...Array(scoresTR.length).keys()].map(x => x + 1); // Array from 1 to the length of scores
+
+    // Prepare the data for the first chart (Rubric Scores)
+// Prepare the data for the first chart (Rubric Scores)
+const rubricChartData = {
+    labels: essayNumbers,
+    datasets: [
+        {
+            label: 'Task Response',
+            data: scoresTR,
+            borderColor: 'rgba(54, 162, 235, 1.0)',
+            backgroundColor: 'rgba(54, 162, 235, 0.6)',
+            fill: false,
+            pointRadius: 5
+        },
+        {
+            label: 'Coherence and Cohesion',
+            data: scoresCC,
+            borderColor: 'rgba(255, 99, 132, 1.0)',
+            backgroundColor: 'rgba(255, 99, 132, 0.6)',
+            fill: false,
+            pointRadius: 5
+        },
+        {
+            label: 'Lexical Resource',
+            data: scoresLR,
+            borderColor: 'rgba(75, 192, 192, 1.0)',
+            backgroundColor: 'rgba(75, 192, 192, 0.6)',
+            fill: false,
+            pointRadius: 5
+        },
+        {
+            label: 'Grammatical Range and Accuracy',
+            data: scoresGRA,
+            borderColor: 'rgba(153, 102, 255, 1.0)',
+            backgroundColor: 'rgba(153, 102, 255, 0.6)',
+            fill: false,
+            pointRadius: 5
+        }
+    ]
+};
+
+const rubricChartOptions = {
+    responsive: true,
+    plugins: {
+        tooltip: {
+            callbacks: {
+                label: function (tooltipItem) {
+                    const index = tooltipItem.dataIndex;
+                    switch (tooltipItem.dataset.label) {
+                        case 'Task Response':
+                            return `Task Response Score: ${tooltipItem.raw}, Time: ${creationTimes[index]}`;
+                        case 'Coherence and Cohesion':
+                            return `Coherence and Cohesion Score: ${tooltipItem.raw}, Time: ${creationTimes[index]}`;
+                        case 'Lexical Resource':
+                            return `Lexical Resource Score: ${tooltipItem.raw}, Time: ${creationTimes[index]}`;
+                        case 'Grammatical Range and Accuracy':
+                            return `Grammatical Range and Accuracy Score: ${tooltipItem.raw}, Time: ${creationTimes[index]}`;
+                        default:
+                            return `Score: ${tooltipItem.raw}, Time: ${creationTimes[index]}`;
+                    }
+                }
+            }
+        },
+        legend: {
+            display: true,
+            labels: {
+                color: 'white', // Adjust legend label color
+                padding: 20
+            },
+            position: 'top',
+            align: 'center'
+        }
+    },
+    scales: {
+        x: {
+            title: {
+                display: true,
+                text: 'Essay Number',
+                color: 'white' // Make axis title white
+            },
+            ticks: {
+                color: 'white' // Make x-axis labels white
+            },
+            grid: {
+                display: true
+            }
+        },
+        y: {
+            title: {
+                display: true,
+                text: 'Score',
+                color: 'white' // Make axis title white
+            },
+            ticks: {
+                color: 'white' // Make y-axis labels white
+            },
+            min: 0,
+            max: 10,
+            grid: {
+                display: true,
+                color: 'rgba(255, 255, 255, 0.2)' // Light grid lines
+            }
+        }
+    }
+};
+
+// Create the first chart with rubric scores
+new Chart(document.getElementById('RubricChart'), {
+    type: 'line',
+    data: rubricChartData,
+    options: rubricChartOptions
+});
+
+// Count the number of essays per day for the second chart
+const essaysPerDay = {};
+creationTimes.forEach(time => {
+    const date = time.split(' ')[0]; // Extract just the date
+    essaysPerDay[date] = (essaysPerDay[date] || 0) + 1;
+});
+const sortedEssaysArray = Object.entries(essaysPerDay).sort((a, b) => new Date(a[0]) - new Date(b[0]));
+const sortedEssaysPerDay = Object.fromEntries(sortedEssaysArray);
+
+// You can now access sorted dates and counts
+const dates = Object.keys(sortedEssaysPerDay);
+const essayCounts = Object.values(sortedEssaysPerDay);
+
+const essayCountChartData = {
+    labels: dates,
+    datasets: [{
+        label: 'Essays Per Day',
+        data: essayCounts,
+        borderColor: 'rgba(255, 165, 0, 1.0)', // New border color
+        backgroundColor: 'rgba(145, 128, 128, 0.5)', 
+        fill: true,
+        pointRadius: 5
+    }]
+};
+
+const essayCountChartOptions = {
+    responsive: true,
+    plugins: {
+        legend: {
+            display: false // No legend for the essays per day chart
+        }
+    },
+    scales: {
+        x: {
+            title: {
+                display: true,
+                text: 'Date',
+                color: 'white' // Make axis title white
+            },
+            ticks: {
+                color: 'white' // Make x-axis labels white
+            },
+            grid: {
+                display: true
+            }
+        },
+        y: {
+            title: {
+                display: true,
+                text: 'Number of Essays',
+                color: 'white' // Make axis title white
+            },
+            ticks: {
+                color: 'white' // Make y-axis labels white
+            },
+            grid: {
+                display: true,
+                color: 'rgba(255, 255, 255, 0.2)' // Light grid lines
+            }
+        }
+    }
+};
+
+// Create the second chart with a new bar color for essays per day
+new Chart(document.getElementById('EssayCountChart'), {
+    type: 'bar',
+    data: essayCountChartData,
+    options: essayCountChartOptions
+});
+
+</script>
+
+{% endblock %}
