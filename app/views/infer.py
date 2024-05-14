@@ -73,3 +73,19 @@ def index():
 @infer_bp.route('/rubric_explanation')
 def rubric_explanation():
     return render_template('rubric_explanation.html')
+
+@infer_bp.route('/rubric_explanation/task_response')
+def task_response():
+    return render_template('task_response.html')
+
+@infer_bp.route('/rubric_explanation/coherence_cohesion')
+def coherence_cohesion():
+    return render_template('coherence_cohesion.html')
+
+@infer_bp.route('/rubric_explanation/lexical_resource')
+def lexical_resource():
+    return render_template('lexical_resource.html')
+
+@infer_bp.route('/rubric_explanation/grammatical_range_accuracy')
+def grammatical_range_accuracy():
+    return render_template('grammatical_range_accuracy.html')
