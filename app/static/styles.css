@@ -58,9 +58,9 @@ body {
 }
 
 input[type="text"], input[type="email"], input[type="password"] {
-    background-color: var(--input-bg-color); /* Use variable for consistent coloring */
-    border: 1px solid #ccc; /* Adjust border color to desired style */
-    color: var(--input-text-color); /* Text color inside the textarea */
+    background-color: rgba(10, 9, 9, 0.5); /* Use variable for consistent coloring */
+    border: 1px solid #100f0f; /* Adjust border color to desired style */
+    color: white; /* Text color inside the textarea */
     border-radius: 4px; /* Adjust radius as needed */
     padding: 10px; /* Provide spacing around the inner text */
 }

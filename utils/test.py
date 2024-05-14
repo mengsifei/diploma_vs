@@ -53,6 +53,8 @@ def encode_chunks(chunks, tokenizer, max_len, max_chunks):
         token_type_ids.append(torch.zeros(max_len, dtype=torch.long))
     return torch.stack(input_ids), torch.stack(attention_masks), torch.stack(token_type_ids)
 def score_essay_hier(topic, essay, tokenizer, model, device):
+    pattern = r'\n\w+'
+    essay = re.sub(pattern, '\n', essay)
     essay = essay.replace("\n", "[SEP]")
     combined_text = f"[TOPIC] {topic} [TOPIC] {topic} [ESSAY] {essay}"
     tokenized_text = tokenizer.tokenize(combined_text)

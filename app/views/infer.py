@@ -1,11 +1,11 @@
-from flask import render_template, session, request, redirect, url_for, abort, flash
+from flask import render_template, session, request, redirect, url_for, flash
 from . import infer_bp
 import secrets
 from transformers import ElectraTokenizer
-from utils.test import score_essay_vanilla
+from ..utils_func.utils import * 
 from ..models import History, db
 from flask_login import current_user
-from models.electra_baseline import BaseModel
+from ..utils_func.model_final import *
 
 @infer_bp.route('/infer', methods=['GET'])
 def infer():
@@ -30,6 +30,13 @@ def infer():
 
 @infer_bp.route('/', methods=['GET', 'POST'])
 def index():
+    set_seed(40)
+    tokenizer = ElectraTokenizer.from_pretrained('google/electra-small-discriminator')
+    model = BaseModel()
+    checkpoint = torch.load('checkpoints/quantized_model.pth', map_location='cpu')
+    model.load_state_dict(checkpoint)
+    # checkpoint = torch.load('checkpoints/best_model_new_linear_layer.pth', map_location='cpu')
+    # model.load_state_dict(checkpoint['model'])
     if request.method == 'POST':
         topic = request.form['topic'].strip()
         essay = request.form['essay'].strip()
@@ -37,11 +44,7 @@ def index():
         if not topic or not essay:
             flash('Please provide both a topic and an essay text.')
             return render_template('index.html', isempty='True')
-
-        # Prepare tokenizer and model
-        tokenizer = ElectraTokenizer.from_pretrained('google/electra-small-discriminator')
-        model = BaseModel()
-        scores = score_essay_vanilla(topic, essay, tokenizer, model, 'cpu')  # Adjust for model instance
+        scores = score_essay_hier(topic, essay, tokenizer, model, 'cpu')  # Adjust for model instance
         session['scores'] = scores.tolist()
         session['topic'] = topic  # Store the topic in the session
         session['essay'] = essay  # Store the essay in the session

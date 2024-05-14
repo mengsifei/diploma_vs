@@ -2,7 +2,6 @@ from transformers import ElectraModel
 import torch.nn as nn
 import torch
 from models.poolings import *
-from torch import nn
 
 class BaseModel(nn.Module):
     def __init__(self, model_name='electra', hidden_dropout_prob=0.2, num_labels=1):
