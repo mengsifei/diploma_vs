@@ -16,10 +16,10 @@
         <div class="col-lg-5">
             <div class="row">
                 {% set rubrics = [
-                    ('Task Response', result[0], 'Explanation of Task Response rubric.', 'task_response'),
-                    ('Coherence and Cohesion', result[1], 'Explanation of Coherence and Cohesion rubric.', 'coherence_cohesion'),
-                    ('Lexical Resource', result[2], 'Explanation of Lexical Resource rubric.', 'lexical_resource'),
-                    ('Grammatical Range and Accuracy', result[3], 'Explanation of Grammatical Range and Accuracy rubric.', 'grammatical_accuracy')
+                    ('Task Response', result[0], 'How well the essay addresses the prompt.', 'task_response'),
+                    ('Coherence and Cohesion', result[1], 'How well the essay flows', 'coherence_cohesion'),
+                    ('Lexical Resource', result[2], 'How diverse is the vocabulary used.', 'lexical_resource'),
+                    ('Grammatical Range and Accuracy', result[3], 'How correct are the grammatical structures.', 'grammatical_accuracy')
                 ] %}
                 {% for rubric, score, explanation, link in rubrics %}
                 <div class="col-md-6 mb-4">
@@ -30,7 +30,6 @@
                                 <p>Score: {{ score }}</p>
                             </div>
                             <div class="flip-card-back">
-                                <h3>{{ rubric }}</h3>
                                 <p>{{ explanation }}</p>
                                 <a href="{{ url_for('infer.rubric_explanation') }}" class="btn btn-info mt-2">Learn More</a>
                             </div>
