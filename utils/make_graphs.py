@@ -11,7 +11,7 @@ def draw_graphs(results, subtitles):
     axs[1].set_title("Validation loss comparison")
     for i in range(2):
         axs[i].set_xlabel("Epoch")
-        axs[i].set_ylabel("MSE")
+        axs[i].set_ylabel("Loss")
         axs[i].legend()
     plt.show()
 

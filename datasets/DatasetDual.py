@@ -12,7 +12,6 @@ class CustomDatasetDual(torch.utils.data.Dataset):
         return len(self.essays)
 
     def __getitem__(self, index):
-        essay_text = self.essays[index]
         prompt_text = self.prompts[index]
         essay_text = essay_text.replace("\n", f" [SEP] ")
         essay_inputs = self.tokenizer.encode_plus(
@@ -48,5 +47,3 @@ class CustomDatasetDual(torch.utils.data.Dataset):
             'topic_token_type_ids': prompt_inputs['token_type_ids'].flatten(),
             'labels': torch.FloatTensor(self.labels[index])
         }
-    
-       

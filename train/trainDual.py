@@ -5,23 +5,18 @@ import gc
 from train.evaluateDual import evaluate_model
 
 def train_model(model, criteria, optimizer, scheduler, train_loader, val_loader, device, additional_info, epochs=10, early_stop=5, rubrics=['tr', 'cc']):
-    # Initialize best scores and stopping parameters
     best_val_loss = [np.inf] * len(rubrics)
     best_mae = [np.inf] * len(rubrics)
     best_kappa = [-np.inf] * len(rubrics)
     epochs_no_improve = 0
     n_epochs_stop = early_stop
-
-    # Initialize history for each rubric and overall metrics
     history = {'kappa_scores_mean': [], 'maes_mean': []}
     for rubric in rubrics:
         history[f'train_loss_{rubric}'] = []
         history[f'validation_loss_{rubric}'] = []
         history[f'kappa_{rubric}'] = []
         history[f'mae_{rubric}'] = []
-
-    task_weights = [1 / len(rubrics)] * len(rubrics)
-    
+    task_weights = [0.2, 0.2, 0.3, 0.3]
     for epoch in tqdm(range(epochs), desc="Epochs"):
         model.train()
         running_loss = {rubric: 0.0 for rubric in rubrics}
@@ -56,13 +51,9 @@ def train_model(model, criteria, optimizer, scheduler, train_loader, val_loader,
                 total_samples[rubric] += labels.size(0)
         if scheduler:
             scheduler.step()
-
-        # Calculate and log the average losses
         for rubric in rubrics:
             avg_train_loss = running_loss[rubric] / total_samples[rubric]
             history[f'train_loss_{rubric}'].append(avg_train_loss)
-
-        # Evaluate the model on validation data
         maes, kappas, valid_losses = evaluate_model(model, val_loader, criteria, device, rubrics)
         mean_kappa = np.mean(kappas)
         mean_mae = np.mean(maes)
@@ -71,8 +62,6 @@ def train_model(model, criteria, optimizer, scheduler, train_loader, val_loader,
 
         print("Mean Validation QWK:", mean_kappa)
         print("Mean Validation MAE:", mean_mae)
-
-
         improved = False
         for i, rubric in enumerate(rubrics):
             history[f'validation_loss_{rubric}'].append(valid_losses[i])
@@ -88,15 +77,18 @@ def train_model(model, criteria, optimizer, scheduler, train_loader, val_loader,
             improved = True
 
         if improved:
-            torch.save(model.state_dict(), f'checkpoints/best_model_{additional_info}.pth')
+            checkpoint = { 
+                'epoch': epoch,
+                'model': model.state_dict(),
+                'optimizer': optimizer.state_dict(),
+                'scheduler': scheduler}
+            torch.save(checkpoint, f'checkpoints/best_model_{additional_info}.pth')
             print(f"Epoch {epoch+1}: New best model saved")
 
         epochs_no_improve = 0 if improved else epochs_no_improve + 1
         if epochs_no_improve >= n_epochs_stop:
             print(f'Epoch {epoch+1}: Early stopping triggered. No improvement for {n_epochs_stop} consecutive epochs.')
             break
-
-        # Clear some memory
         torch.cuda.empty_cache()
         gc.collect()
 

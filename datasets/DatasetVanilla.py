@@ -7,8 +7,7 @@ class CustomDataset(Dataset):
         self.df = df
         self.text = df['essay']
         self.prompt = df['prompt']
-        self.max_len = max_len
-        self.max_chunks = 4 # , 
+        self.max_len = max_len 
         self.labels = df[['Task Response', 'Coherence and Cohesion', 'Lexical Resource', 'Grammatical Range and Accuracy']].values
     def __len__(self):
         return len(self.text)
@@ -16,7 +15,6 @@ class CustomDataset(Dataset):
         text = self.text[index].replace('\n', '[SEP]')
         prompt = self.prompt[index]
         combined_text = f"[prompt] {prompt} [prompt] {prompt} [ESSAY] {text}"
-        tokenized_text = self.tokenizer.tokenize(combined_text)
         inputs = self.tokenizer.encode_plus(
             combined_text,
             None,

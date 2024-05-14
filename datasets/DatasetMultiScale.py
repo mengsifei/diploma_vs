@@ -19,7 +19,7 @@ class CustomDatasetChunk(Dataset):
     def __getitem__(self, index):
         text = self.text[index]
         topic = self.topic[index]
-        combined_text = f"[TOPIC] {topic} [ESSAY] {text}"
+        combined_text = f"[prompt] {prompt} [prompt] {prompt} [ESSAY] {text}"
         tokenized_text = self.tokenizer.tokenize(combined_text)
         
         # Process document-level inputs uniformly

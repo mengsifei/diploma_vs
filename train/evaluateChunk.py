@@ -4,27 +4,22 @@ import numpy as np
 from sklearn.metrics import mean_absolute_error, cohen_kappa_score
 
 def evaluate_model_chunk(models, loader, criteria, device, rubrics):
-    model_doc, model_chunk = models  # Unpack the tuple into separate models
-    model_doc.eval()  # Set the document model to evaluation mode
-    model_chunk.eval()  # Set the chunk model to evaluation mode
+    model_doc, model_chunk = models 
+    model_doc.eval()
+    model_chunk.eval()
 
     running_losses = {rubric: 0.0 for rubric in rubrics}
     task_weights = [1 / len(rubrics)] * len(rubrics)
     all_preds = []
     all_targets = []
-    total_samples = 0  # This will store the total samples processed per task
-
+    total_samples = 0 
     with torch.no_grad():
         for batch in loader:
-            doc_inputs, seg_inputs = batch  # Assume batch unpacks into document and segment inputs
-            labels = doc_inputs['labels'].to(device)  # Assuming labels are the same for both inputs
-
-            # Process document-level inputs
+            doc_inputs, seg_inputs = batch
+            labels = doc_inputs['labels'].to(device)  
             doc_outputs = model_doc(doc_inputs['input_ids'].to(device),
                                     doc_inputs['attention_mask'].to(device),
                                     doc_inputs['token_type_ids'].to(device))
-
-            # Process segment-level inputs through a cycle
             chunk_outputs = model_chunk(seg_inputs['input_ids'].to(device),
                                     seg_inputs['attention_mask'].to(device),
                                     seg_inputs['token_type_ids'].to(device), device)

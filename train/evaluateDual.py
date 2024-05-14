@@ -5,10 +5,10 @@ from sklearn.metrics import mean_absolute_error, cohen_kappa_score
 def evaluate_model(model, loader, criteria, device, rubrics):
     model.eval()
     running_losses = [0.0] * len(rubrics)
-    task_weights = [1 / len(rubrics)] * len(rubrics)
+    task_weights = [0.2, 0.2, 0.3, 0.3]
     all_preds = []
     all_targets = []
-    total_samples = [0] * len(rubrics)  # This will store the total samples processed per task
+    total_samples = [0] * len(rubrics)
 
     with torch.no_grad():
         for batch in loader:
@@ -40,7 +40,7 @@ def evaluate_model(model, loader, criteria, device, rubrics):
                 weighted_loss = criteria[i](outputs[:, i], labels[:, i])
                 final_loss = weighted_loss * task_weights[i]
                 running_losses[i] += final_loss.item() * batch_size
-                total_samples[i] += batch_size  # Update total samples for each task
+                total_samples[i] += batch_size
 
         all_preds = np.vstack(all_preds)
         all_targets = np.vstack(all_targets)

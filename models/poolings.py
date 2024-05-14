@@ -2,115 +2,81 @@ import torch.nn as nn
 import torch
 import torch.nn.functional as F
 import math
+import numpy as np
+
 
 class MeanPooling(nn.Module):
     def __init__(self):
         super(MeanPooling, self).__init__()
-    def forward(self, last_hidden_state, attention_mask):
-        input_mask_expanded = attention_mask.unsqueeze(-1).expand(last_hidden_state.size()).float()
-        sum_embeddings = torch.sum(last_hidden_state * input_mask_expanded, 1)
-        sum_mask = input_mask_expanded.sum(1)
-        sum_mask = torch.clamp(sum_mask, min=1e-9)
-        mean_embeddings = sum_embeddings / sum_mask
-        return mean_embeddings
-class MeanPoolingChunks(nn.Module):
+    def forward(self, hidden_states, mask=None):
+        if mask is None:
+            return torch.mean(hidden_states, dim=1)
+        else:
+            mask_expanded = mask.unsqueeze(-1).expand(hidden_states.size()).float()
+            sum_embeddings = torch.sum(hidden_states * mask_expanded, dim=1)
+            sum_mask = mask_expanded.sum(dim=1)
+            sum_mask = torch.clamp(sum_mask, min=1e-9)  # Avoid division by zero
+            mean_embeddings = sum_embeddings / sum_mask
+            return mean_embeddings
+
+class CLSPooling(nn.Module):
     def __init__(self):
-        super(MeanPoolingChunks, self).__init__()
+        super(CLSPooling, self).__init__()
+    def forward(self, hidden_states, mask=None):
+        cls_embeddings = hidden_states[:, 0, :]
+        return cls_embeddings
 
-    def forward(self, embeddings, attention_mask):
-        # Embeddings shape: (batch_size, num_chunks, seq_length, hidden_size)
-        # Attention_mask shape: (batch_size, num_chunks, seq_length)
-        batch_size, num_chunks, seq_length, hidden_size = embeddings.size()
-        expanded_mask = attention_mask.unsqueeze(-1).expand(-1, -1, -1, hidden_size).float()
+class WeightedLayerPooling(nn.Module):
+    def __init__(self, num_hidden_layers, layer_start: int = 4, layer_weights = None):
+        super(WeightedLayerPooling, self).__init__()
+        self.layer_start = layer_start
+        self.num_hidden_layers = num_hidden_layers
+        self.layer_weights = layer_weights if layer_weights is not None \
+            else nn.Parameter(
+                torch.tensor([1] * (num_hidden_layers+1 - layer_start), dtype=torch.float)
+            )
 
-        # Summing embeddings across the seq_length dimension
-        sum_embeddings = torch.sum(embeddings * expanded_mask, dim=2)  # Shape: (batch_size, num_chunks, hidden_size)
-        sum_mask = torch.sum(expanded_mask, dim=2)  # Shape: (batch_size, num_chunks, hidden_size)
-
-        # Avoid division by zero
-        sum_mask = torch.clamp(sum_mask, min=1e-9)
-        
-        # Mean over sequence length
-        mean_embeddings = sum_embeddings / sum_mask  # Shape: (batch_size, num_chunks, hidden_size)
-
-        # Average over chunks or other pooling method
-        # For simplicity, we take mean across chunks
-        final_mean = torch.mean(mean_embeddings, dim=1)  # Shape: (batch_size, hidden_size)
-
-        return final_mean
+    def forward(self, all_hidden_states):
+        all_layer_embedding = all_hidden_states[self.layer_start:, :, :, :]
+        weight_factor = self.layer_weights.unsqueeze(-1).unsqueeze(-1).unsqueeze(-1).expand(all_layer_embedding.size())
+        weighted_average = (weight_factor*all_layer_embedding).sum(dim=0) / self.layer_weights.sum()
+        return weighted_average
 
 
-# class AttentionPooling(nn.Module):
-#     def __init__(self, hidden_dim):
-#         super(AttentionPooling, self).__init__()
-#         self.hidden_dim = hidden_dim
-#         self.w = nn.Linear(self.hidden_dim, self.hidden_dim)
-#         self.v = nn.Linear(self.hidden_dim, 1)
+class MaxPooling(nn.Module):
+    def __init__(self):
+        super(MaxPooling, self).__init__()
 
-#     def forward(self, h):
-#         w = torch.tanh(self.w(h))
-#         weight = self.v(w)
-#         # weight = weight.squeeze(dim=-1)
-#         weight = torch.softmax(weight, dim=1)
-#         # weight = weight.unsqueeze(dim=-1)
-#         weight_broadcasted = weight.repeat(1, h.size(1))
-#         # print(weight_broadcasted.shape)
-#         # print(h.shape)
-#         out = torch.mul(h, weight_broadcasted)
-#         print(out.shape)
-#         out = torch.sum(out, dim=0)
-#         print(out.shape)
-#         return out
+    def forward(self, hidden_states, mask=None):
+        if mask is None:
+            return torch.max(hidden_states, dim=1).values
+        else:
+            masked_hidden_states = hidden_states.masked_fill(mask.unsqueeze(-1) == 0, float('-inf'))
+            return torch.max(masked_hidden_states, dim=1).values
 
-class SelfAttention(nn.Module):
-    def __init__(self, feature_dim, attention_heads=1):
-        super(SelfAttention, self).__init__()
-        self.feature_dim = feature_dim
-        self.attention_heads = attention_heads
-        self.key = nn.Linear(feature_dim, feature_dim * attention_heads)
-        self.query = nn.Linear(feature_dim, feature_dim * attention_heads)
-        self.value = nn.Linear(feature_dim, feature_dim * attention_heads)
+class MeanMaxPooling(nn.Module):
+    def __init__(self):
+        super(MeanMaxPooling, self).__init__()
+        self.mean_pooling = MeanPooling()
+        self.max_pooling = MaxPooling()  # Assuming MaxPooling is defined similarly to handle masks
 
-    def forward(self, x):
-        batch_size = x.size(0)
+    def forward(self, last_hidden_state, attention_mask):
+        mean_pooling_embeddings = self.mean_pooling(last_hidden_state, attention_mask)
+        max_pooling_embeddings = self.max_pooling(last_hidden_state, attention_mask)
+        return torch.cat((mean_pooling_embeddings, max_pooling_embeddings), dim=1)
 
-        # Calculate queries, keys, values
-        keys = self.key(x).view(batch_size, -1, self.attention_heads, self.feature_dim).transpose(1, 2)
-        queries = self.query(x).view(batch_size, -1, self.attention_heads, self.feature_dim).transpose(1, 2)
-        values = self.value(x).view(batch_size, -1, self.attention_heads, self.feature_dim).transpose(1, 2)
 
-        # Attention mechanism
-        attention_scores = torch.matmul(queries, keys.transpose(-2, -1)) / math.sqrt(self.feature_dim)
-        attention_weights = F.softmax(attention_scores, dim=-1)
-
-        # Apply attention weights to values
-        weighted_sum = torch.matmul(attention_weights, values)
-        weighted_sum = weighted_sum.transpose(1, 2).contiguous().view(batch_size, -1, self.feature_dim * self.attention_heads)
-
-        # Optionally, project back to the original feature dimension (useful if attention_heads > 1)
-        if self.attention_heads > 1:
-            weighted_sum = weighted_sum.view(batch_size, -1, self.feature_dim * self.attention_heads)
-            weighted_sum = weighted_sum.sum(dim=2).view(batch_size, self.feature_dim)
-        
-        return weighted_sum.sum(dim=1)
-    
-class SoftAttention(nn.Module):
+class AttentionPooling(nn.Module):
     def __init__(self, hidden_dim):
-        super(SoftAttention, self).__init__()
+        super(AttentionPooling, self).__init__()
         self.hidden_dim = hidden_dim
         self.w = nn.Linear(self.hidden_dim, self.hidden_dim)
         self.v = nn.Linear(self.hidden_dim, 1)
 
-    def forward(self, h):
-        w = torch.tanh(self.w(h))
-
-        weight = self.v(w)
-        weight = weight.squeeze(dim=-1)
-
-        weight = torch.softmax(weight, dim=1)
-        weight = weight.unsqueeze(dim=-1)
-        out = torch.mul(h, weight.repeat(1, 1, h.size(2)))
-
-        out = torch.sum(out, dim=1)
-
+    def forward(self, h, attention_mask):
+        transformed_h = torch.tanh(self.w(h))
+        raw_weights = self.v(transformed_h).squeeze(-1)
+        weights = F.softmax(raw_weights, dim=1)
+        weighted_h = h * weights.unsqueeze(-1)
+        out = torch.sum(weighted_h, dim=1)
         return out
