@@ -1,0 +1,2 @@
+import flask_sqlalchemy
+print(flask_sqlalchemy.__version__)
