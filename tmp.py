@@ -1,2 +1,2 @@
-import secrets
-print(secrets.__version__)
+import random
+print(random.__version__)
