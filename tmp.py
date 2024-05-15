@@ -1,2 +1,2 @@
-import flask_sqlalchemy
-print(flask_sqlalchemy.__version__)
+import torch
+print(torch.__version__)
