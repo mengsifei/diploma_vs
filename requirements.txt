@@ -2,7 +2,7 @@ flask==3.0.2
 flask_login==0.6.3
 werkzeug==3.0.1
 transformers==4.40.0
-torch==2.2.2
+# torch==2.2.2
 flask_sqlalchemy==3.1.1
 gunicorn==19.7.1
 numpy==1.26.4
