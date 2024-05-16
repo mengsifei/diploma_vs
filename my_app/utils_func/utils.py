@@ -37,19 +37,28 @@ def encode_chunks(chunks, tokenizer, max_len, max_chunks):
         attention_masks.append(torch.zeros(max_len, dtype=torch.long))
         token_type_ids.append(torch.zeros(max_len, dtype=torch.long))
     return torch.stack(input_ids), torch.stack(attention_masks), torch.stack(token_type_ids)
-def score_essay_hier(topic, essay, tokenizer, model, device):
+
+def score_essay_hier(topic, essay, tokenizer, model):
     pattern = r'\n\w+'
     essay = re.sub(pattern, '\n', essay)
     essay = essay.replace("\n", "[SEP]")
     combined_text = f"[TOPIC] {topic} [TOPIC] {topic} [ESSAY] {essay}"
     tokenized_text = tokenizer.tokenize(combined_text)
     input_ids_doc, attention_mask_doc, token_type_ids_doc = process_chunks(tokenized_text, tokenizer, 512, 3)
-    with torch.no_grad():
-        input_ids_doc = input_ids_doc.unsqueeze(0).to(device)
-        attention_mask_doc = attention_mask_doc.unsqueeze(0).to(device)
-        token_type_ids_doc = token_type_ids_doc.unsqueeze(0).to(device)
-        outputs = model(input_ids_doc, attention_mask_doc, token_type_ids_doc)
-        logits = outputs.cpu().numpy()[0]  # assuming outputs to be of shape [1, num_labels]
-        scores = np.round(logits).astype(int)  # rounding off to the nearest integer
+    
+    # Convert tensors to numpy arrays
+    input_ids_doc = input_ids_doc.unsqueeze(0).cpu().numpy()
+    attention_mask_doc = attention_mask_doc.unsqueeze(0).cpu().numpy()
+    token_type_ids_doc = token_type_ids_doc.unsqueeze(0).cpu().numpy()
+    
+    input_dict = {
+        'input_ids': input_ids_doc,
+        'attention_mask': attention_mask_doc,
+        'token_type_ids': token_type_ids_doc
+    }
+    
+    outputs = model.run(None, input_dict)
+    logits = outputs[0][0] 
+    scores = np.round(logits).astype(int)  # rounding off to the nearest integer
     scores = np.clip(scores, 1, 9)  # ensuring scores are within the valid range
     return scores

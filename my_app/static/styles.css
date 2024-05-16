@@ -322,7 +322,7 @@ h1, h2 {
 }
 
 .flashcard-front {
-    background-color: #2980b9;
+    background-color: #091d2b;
     color: white;
     display: flex;
     align-items: center;
@@ -331,7 +331,7 @@ h1, h2 {
 }
 
 .flashcard-back {
-    background-color: white;
+    background-color: rgb(207, 214, 234);
     color: black;
     transform: rotateY(180deg);
     display: flex;

@@ -1,2 +1,2 @@
-import random
-print(random.__version__)
+import onnxruntime
+print(onnxruntime.__version__)

@@ -5,7 +5,7 @@ from transformers import ElectraTokenizer
 from ..utils_func.utils import * 
 from ..models import History, db
 from flask_login import current_user
-from ..utils_func.model_final import *
+import onnxruntime
 
 @infer_bp.route('/infer', methods=['GET'])
 def infer():
@@ -32,22 +32,24 @@ def infer():
 def index():
     set_seed(40)
     tokenizer = ElectraTokenizer.from_pretrained('google/electra-small-discriminator')
-    model = BaseModel()
-    checkpoint = torch.load('checkpoints/quantized_model.pth', map_location='cpu')
-    model.load_state_dict(checkpoint)
-    # checkpoint = torch.load('checkpoints/best_model_new_linear_layer.pth', map_location='cpu')
-    # model.load_state_dict(checkpoint['model'])
+    onnx_model_path = 'checkpoints/model.onnx'
+    model_session = onnxruntime.InferenceSession(onnx_model_path)
     if request.method == 'POST':
         topic = request.form['topic'].strip()
         essay = request.form['essay'].strip()
-
         if not topic or not essay:
             flash('Please provide both a topic and an essay text.')
             return render_template('index.html', isempty='True')
-        scores = score_essay_hier(topic, essay, tokenizer, model, 'cpu')  # Adjust for model instance
-        session['scores'] = scores.tolist()
-        session['topic'] = topic  # Store the topic in the session
-        session['essay'] = essay  # Store the essay in the session
+        num_words = len(essay.split())
+        if num_words < 20:
+            session['scores'] = [1, 1, 1, 1]
+            session['topic'] = topic  # Store the topic in the session
+            session['essay'] = essay  
+        else:
+            scores = score_essay_hier(topic, essay, tokenizer, model_session)  # Adjust for model instance
+            session['scores'] = scores.tolist()
+            session['topic'] = topic  # Store the topic in the session
+            session['essay'] = essay  # Store the essay in the session
         
         # Generate a secure token and store it in the session
         token = secrets.token_urlsafe(16)
@@ -70,7 +72,6 @@ def index():
         
         # Redirect to the `/infer` page with the generated token
         return redirect(url_for('infer.infer', token=token))
-
     return render_template('index.html', isempty='False', username=current_user.nickname if current_user.is_authenticated else '')
 
 @infer_bp.route('/rubric_explanation')
