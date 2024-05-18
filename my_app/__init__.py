@@ -9,7 +9,6 @@ login_manager = LoginManager()
 def create_app():
     app = Flask(__name__)
     app.config.from_pyfile('../config.py')
-
     db.init_app(app)
     login_manager.init_app(app)
     login_manager.login_view = 'auth.login'

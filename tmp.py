@@ -1,2 +1,2 @@
-import onnxruntime
-print(onnxruntime.__version__)
+import flask_mail 
+print(flask_mail.__version__)
