@@ -12,7 +12,6 @@ def dashboard(page):
     pagination = History.query.filter_by(user_id=current_user.id).order_by(History.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
     histories = pagination.items
 
-    # Prepare lists to pass to the template
     scores_tr = [history.score_tr for history in histories]
     scores_cc = [history.score_cc for history in histories]
     scores_lr = [history.score_lr for history in histories]

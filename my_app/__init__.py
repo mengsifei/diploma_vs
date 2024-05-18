@@ -3,7 +3,6 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask import render_template
 
-# Create instances of extensions
 db = SQLAlchemy()
 login_manager = LoginManager()
 
@@ -19,7 +18,6 @@ def create_app():
         return User.query.get(int(user_id))
 
     with app.app_context():
-        # Import and register Blueprints
         from .views import auth_bp, dashboard_bp, infer_bp, about_bp, error_bp
         app.register_blueprint(auth_bp)
         app.register_blueprint(dashboard_bp)
@@ -28,10 +26,9 @@ def create_app():
         app.register_blueprint(error_bp)
         @app.errorhandler(Exception)
         def handle_all_exceptions(e):
-            code = getattr(e, 'code', 500)  # Default to 500 if code is not available
+            code = getattr(e, 'code', 500)
             error_message = str(e) if hasattr(e, 'description') else "Something went wrong."
             return render_template('error.html', code=code, error_message=error_message), code
-        # Import models for database setup
         from .models import User, History
         db.create_all()
     

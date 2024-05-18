@@ -32,16 +32,6 @@
     z-index: -1;
 }
 
-
-/* Add this to your CSS file
-#particles-js {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    background-color: rgb(19, 18, 19);
-    z-index: -1;
-} */
-
 body {
     margin: 0;
     padding: 0;
@@ -58,24 +48,22 @@ body {
 }
 
 input[type="text"], input[type="email"], input[type="password"] {
-    background-color: rgba(10, 9, 9, 0.5); /* Use variable for consistent coloring */
-    border: 1px solid #100f0f; /* Adjust border color to desired style */
-    color: white; /* Text color inside the textarea */
-    border-radius: 4px; /* Adjust radius as needed */
-    padding: 10px; /* Provide spacing around the inner text */
+    background-color: rgba(10, 9, 9, 0.5);
+    border: 1px solid #100f0f;
+    color: white;
+    border-radius: 4px;
+    padding: 10px;
 }
 
 textarea {
     background-color:transparent;  
     background:  transparent;
-    resize: vertical; /* Allows resizing in the vertical direction only */
-    overflow-y: auto; /* Enables a vertical scrollbar if content overflows */
+    resize: vertical;
+    overflow-y: auto;
 }
 
-/* Modal Styles */
 .modal-content {
     background-color: var(--modal-background-color);
-    /* color: var(--modal-text-color); */
     color: var(--modal-background-color);
     z-index: 1050; 
 }
@@ -84,7 +72,6 @@ textarea {
     color: var(--modal-text-color);
 }
 
-/* General Styles */
 body, h1, h2, h3, p, a {
     font-family: 'Georgia', serif;
     text-align: center;
@@ -147,11 +134,10 @@ a.nav-link:hover {
 }
 
 textarea {
-    /* background-color: var(--input-bg-color); */
     background-color: #1e0606 ;
     border: 1px solid #ccc;
-    resize: vertical; /* Allows resizing in the vertical direction */
-    overflow-y: auto; /* Enables a vertical scrollbar if content overflows */
+    resize: vertical;
+    overflow-y: auto;
 }
 
 .btn-primary {
@@ -204,9 +190,9 @@ h1, h2 {
 }
 
 .container {
-    flex: 1; /* Ensures that the content expands to fill available space */
+    flex: 1;
 }
-/* Alert Modal Styles */
+
 .modal-content {
     background-color: var(--modal-background-color);
     color: var(--modal-text-color);
@@ -262,21 +248,21 @@ h1, h2 {
     transform: rotateY(180deg);
 }
 
-/* Sidebar styles */
+
 .sidebar {
     position: fixed;
     top: 0;
-    left: -300px; /* Initially hidden to the left */
+    left: -300px;
     width: 300px;
     height: 100%;
-    background-color: #343a40; /* Adjust color as needed */
+    background-color: #343a40;
     color: white;
-    transition: 0.3s; /* Smooth transition for sliding effect */
-    z-index: 1000; /* Keep it above the main content */
+    transition: 0.3s;
+    z-index: 1000;
 }
 
 .sidebar.active {
-    left: 0; /* Reveal the sidebar by moving it into view */
+    left: 0;
 }
 
 .sidebar-content {

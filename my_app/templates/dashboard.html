@@ -4,7 +4,6 @@
 <div class="container mt-4">
     <h2 class="center-text">Dashboard</h2>
     <form method="POST" action="{{ url_for('dashboard.delete_histories') }}">
-        <!-- Plots Section -->
         <div class="row mt-4">
             <div class="col-lg-6 mb-4">
                 <h4>Rubric Score Dynamics</h4>
@@ -32,7 +31,7 @@
             <tbody>
                 {% for history in histories %}
                     <tr>
-                        <td>{{ loop.index }}</td> <!-- loop.index will yield a 1-based index -->
+                        <td>{{ loop.index }}</td> 
                         <td><input type="checkbox" name="history_ids" value="{{ history.id }}"></td>
                         <td>{{ history.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
                         <td onclick="showModal('{{ history.topic }}')">{{ history.topic | truncate(10) }}</td>
@@ -49,8 +48,6 @@
             <button type="submit" class="btn btn-danger">Delete Selected</button>
         </div>
     </form>
-    
-<!-- Page Navigation for Pagination -->
 <nav aria-label="Page navigation example" style="margin-top: 50px;">
     <ul class="pagination justify-content-center">
       {% if pagination.has_prev %}
@@ -81,7 +78,6 @@
     </ul>
   </nav>
 </div>
-<!-- Modal for displaying full topic or essay content -->
 <div class="modal fade" id="contentModal" tabindex="-1" role="dialog">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
@@ -101,15 +97,12 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    // Ensure the DOM is fully loaded before calling initializeCharts
     document.addEventListener('DOMContentLoaded', function() {
         const scoresTR = JSON.parse('{{ scores_tr|tojson|safe }}');
         const scoresCC = JSON.parse('{{ scores_cc|tojson|safe }}');
         const scoresLR = JSON.parse('{{ scores_lr|tojson|safe }}');
         const scoresGRA = JSON.parse('{{ scores_gra|tojson|safe }}');
         const creationTimes = JSON.parse('{{ creation_times|tojson|safe }}');
-    
-        // Call the function to initialize the charts
         initializeCharts(scoresTR, scoresCC, scoresLR, scoresGRA, creationTimes);
     });
 </script>

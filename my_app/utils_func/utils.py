@@ -7,7 +7,6 @@ def set_seed(seed_value=42):
     random.seed(seed_value)
     np.random.seed(seed_value)
     torch.manual_seed(seed_value)
-    torch.cuda.manual_seed_all(seed_value)
 
 
 def process_chunks(tokens, tokenizer, max_len=512, max_chunks=3):
@@ -46,7 +45,6 @@ def score_essay_hier(topic, essay, tokenizer, model):
     tokenized_text = tokenizer.tokenize(combined_text)
     input_ids_doc, attention_mask_doc, token_type_ids_doc = process_chunks(tokenized_text, tokenizer, 512, 3)
     
-    # Convert tensors to numpy arrays
     input_ids_doc = input_ids_doc.unsqueeze(0).cpu().numpy()
     attention_mask_doc = attention_mask_doc.unsqueeze(0).cpu().numpy()
     token_type_ids_doc = token_type_ids_doc.unsqueeze(0).cpu().numpy()
@@ -59,6 +57,6 @@ def score_essay_hier(topic, essay, tokenizer, model):
     
     outputs = model.run(None, input_dict)
     logits = outputs[0][0] 
-    scores = np.round(logits).astype(int)  # rounding off to the nearest integer
-    scores = np.clip(scores, 1, 9)  # ensuring scores are within the valid range
+    scores = np.round(logits).astype(int)
+    scores = np.clip(scores, 1, 9)
     return scores

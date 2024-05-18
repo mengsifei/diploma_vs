@@ -1,3 +1,9 @@
+import requests
+import BeautifulSoup
+import json
+import re
+import pandas as pd
+
 def scrape_essays(start, end, score):
     link = 'https://writing9.com/band/' + score
     first_level_urls = [link + '/{}'.format(i) for i in range(start, end)]

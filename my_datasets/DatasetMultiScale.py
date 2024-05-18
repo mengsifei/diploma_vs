@@ -19,13 +19,10 @@ class CustomDatasetChunk(Dataset):
     def __getitem__(self, index):
         text = self.text[index]
         topic = self.topic[index]
-        combined_text = f"[prompt] {prompt} [prompt] {prompt} [ESSAY] {text}"
+        combined_text = f"[prompt] {topic} [prompt] {topic} [ESSAY] {text}"
         tokenized_text = self.tokenizer.tokenize(combined_text)
         
-        # Process document-level inputs uniformly
         input_ids_doc, attention_mask_doc, token_type_ids_doc = self.process_chunks(tokenized_text, self.max_len, self.max_chunks)
-
-        # Process segments based on predefined lengths
         input_ids_seg, attention_mask_seg, token_type_ids_seg = self.process_fixed_segments(tokenized_text, self.segment_lengths)
 
         return [{
@@ -41,7 +38,7 @@ class CustomDatasetChunk(Dataset):
             }]
 
     def process_chunks(self, tokens, max_len, max_chunks):
-        chunk_size = max_len - 2  # account for [CLS] and [SEP]
+        chunk_size = max_len - 2
         chunks = [tokens[i:i + chunk_size] for i in range(0, len(tokens), chunk_size)]
         return self.encode_chunks(chunks, max_len, max_chunks)
 
@@ -59,12 +56,9 @@ class CustomDatasetChunk(Dataset):
         input_ids, attention_masks, token_type_ids = [], [], []
         for chunk in chunks:
             if not chunk:
-                chunk = ["[UNK]"]  # Fallback for empty chunks
-            # # Join the tokens into a single string
-            # chunk_text = ' '.join(chunk)
-            # print(chunk_text)
+                chunk = ["[UNK]"]
             encoded = self.tokenizer.encode_plus(
-                chunk,  # Use the string of tokens here
+                chunk,
                 add_special_tokens=True,
                 max_length=max_len,
                 padding='max_length',
@@ -76,7 +70,6 @@ class CustomDatasetChunk(Dataset):
             attention_masks.append(encoded['attention_mask'].squeeze(0))
             token_type_ids.append(encoded['token_type_ids'].squeeze(0))
 
-        # Pad the batches to max_chunks if necessary
         while len(input_ids) < max_chunks:
             input_ids.append(torch.zeros(max_len, dtype=torch.long))
             attention_masks.append(torch.zeros(max_len, dtype=torch.long))

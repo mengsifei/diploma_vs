@@ -15,14 +15,14 @@ def score_essay_vanilla(topic, essay, tokenizer, model, device):
         truncation=True,
         return_attention_mask=True,
         return_tensors='pt',
-        return_token_type_ids=True  # make conditional on model type if some models don't use token_type_ids
+        return_token_type_ids=True 
     )
     inputs = {k: v.to(device) for k, v in inputs.items()}
     with torch.no_grad():
         outputs = model(**inputs)
-        logits = outputs.cpu().numpy()[0]  # assuming outputs to be of shape [1, num_labels]
-        scores = np.round(logits).astype(int)  # rounding off to the nearest integer
-    scores = np.clip(scores, 1, 9)  # ensuring scores are within the valid range
+        logits = outputs.cpu().numpy()[0]
+        scores = np.round(logits).astype(int)
+    scores = np.clip(scores, 1, 9)
     return scores
 
 def process_chunks(tokens, tokenizer, max_len=512, max_chunks=3):
@@ -64,9 +64,9 @@ def score_essay_hier(topic, essay, tokenizer, model, device):
         attention_mask_doc = attention_mask_doc.unsqueeze(0).to(device)
         token_type_ids_doc = token_type_ids_doc.unsqueeze(0).to(device)
         outputs = model(input_ids_doc, attention_mask_doc, token_type_ids_doc)
-        logits = outputs.cpu().numpy()[0]  # assuming outputs to be of shape [1, num_labels]
-        scores = np.round(logits).astype(int)  # rounding off to the nearest integer
-    scores = np.clip(scores, 1, 9)  # ensuring scores are within the valid range
+        logits = outputs.cpu().numpy()[0]
+        scores = np.round(logits).astype(int) 
+    scores = np.clip(scores, 1, 9)
     return scores
 
 def test(model, tokenizer, test_df, device, prompt_id=1, essay_id=100):

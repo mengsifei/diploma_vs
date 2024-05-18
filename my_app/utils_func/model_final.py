@@ -47,27 +47,22 @@ class BaseModel(nn.Module):
                 outputs = self.model(input_ids=chunk_input_ids,
                                      attention_mask=chunk_attention_mask,
                                      token_type_ids=chunk_token_type_ids)
-                
-                # Collect last hidden state
+
                 last_hidden_state = outputs.last_hidden_state[:, 0]
                 all_last_hidden_states.append(last_hidden_state)
                 
-                # Weighted pooling and pooling
                 outputs = torch.stack(outputs.hidden_states)
                 weighted_pooling_embeddings = self.weighted_pooler(outputs)
                 pooled_embedding = self.pooler(weighted_pooling_embeddings, chunk_attention_mask)
                 all_pooled_outputs_chunk.append(pooled_embedding)
         
-        # Concatenate pooled outputs and last hidden states
         all_pooled_outputs_chunk = torch.stack(all_pooled_outputs_chunk, dim=1)
         all_last_hidden_states = torch.stack(all_last_hidden_states, dim=1)
 
-        # ResNet-style layer normalization and residual connection
         combined_output = torch.cat([all_pooled_outputs_chunk, all_last_hidden_states], dim=-1)
         linear_output = self.layernorm(self.relu(self.linear(combined_output)))
         pooled_output = linear_output[:, 0]
 
-        # Dropout and final linear layer
         dropped_output = self.dropout(pooled_output)
         prediction = self.out(dropped_output)
         return prediction
