@@ -1,10 +1,8 @@
 $(document).ready(function() {
-    // Toggle visibility of the sidebar
     $('#toggle-sidebar').on('click', function() {
         const sidebar = $('#sidebar');
         sidebar.toggleClass('active');
 
-        // Update the toggle button icon/text based on the sidebar state
         if (sidebar.hasClass('active')) {
             $(this).text("✖");
         } else {
@@ -12,23 +10,20 @@ $(document).ready(function() {
         }
     });
 
-    // Close the sidebar via the "Close Sidebar" button inside the sidebar
     $('#close-sidebar').on('click', function() {
         const sidebar = $('#sidebar');
         sidebar.removeClass('active');
         $('#toggle-sidebar').text("☰");
     });
 
-    // Show the alert modal if the form was submitted with empty fields
     var isEmpty = $('#isempty').val() === 'True';
     if (isEmpty) {
         $('#alertModal').modal('show');
     }
 
-    // Prevent form submission with Enter and insert a new line instead
     $('#essay').on('keydown', function(e) {
         if (e.key === 'Enter') {
-            e.preventDefault(); // Prevent form submission
+            e.preventDefault();
             var start = this.selectionStart;
             var end = this.selectionEnd;
             var text = this.value;
@@ -37,7 +32,6 @@ $(document).ready(function() {
         }
     });
 
-    // Countdown Timer Logic
     let countdownSeconds;
     const countdownDisplay = document.getElementById("countdown-timer");
     let countdownInterval;
@@ -61,11 +55,11 @@ $(document).ready(function() {
         const secondsInput = parseInt(timeParts[1], 10) || 0;
         countdownSeconds = minutesInput * 60 + secondsInput;
 
-        clearTimeout(countdownInterval); // Clear any existing countdown
-        updateCountdown(); // Start the countdown
+        clearTimeout(countdownInterval);
+        updateCountdown();
     });
 
     $('#stop-countdown').on('click', function() {
-        clearTimeout(countdownInterval); // Stop the countdown timer
+        clearTimeout(countdownInterval);
     });
 });

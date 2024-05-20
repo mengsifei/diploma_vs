@@ -8,7 +8,7 @@
     --button-hover-bg-color: #404040;
     --button-border-color: #404040;
     --button-hover-border-color: #303030;
-    --input-bg-color: rgba(255, 255, 255, 0.5); /* Adjust this for transparency */
+    --input-bg-color: rgba(255, 255, 255, 0.5);
     --input-text-color: #d6cdcd;
     --alert-color: var(--input-text-color);
     --toggle-color: #45586d;

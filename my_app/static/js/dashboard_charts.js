@@ -1,10 +1,8 @@
-// JavaScript function to update and show the modal with content
 function showModal(content) {
     document.getElementById('content-text').innerText = content;
     $('#contentModal').modal('show');
 }
 
-// JavaScript for the 'Select All' checkbox functionality
 function selectAll(source) {
     const checkboxes = document.querySelectorAll('input[type="checkbox"]');
     for (let i = 0; i < checkboxes.length; i++) {
@@ -13,11 +11,9 @@ function selectAll(source) {
     }
 }
 
-// Function to initialize the charts
 function initializeCharts(scoresTR, scoresCC, scoresLR, scoresGRA, creationTimes) {
     const essayNumbers = [...Array(scoresTR.length).keys()].map(x => x + 1); // Array from 1 to the length of scores
 
-    // Prepare the data for the first chart (Rubric Scores)
     const rubricChartData = {
         labels: essayNumbers,
         datasets: [
@@ -81,7 +77,7 @@ function initializeCharts(scoresTR, scoresCC, scoresLR, scoresGRA, creationTimes
             legend: {
                 display: true,
                 labels: {
-                    color: 'white', // Adjust legend label color
+                    color: 'white',
                     padding: 20
                 },
                 position: 'top',
@@ -93,10 +89,10 @@ function initializeCharts(scoresTR, scoresCC, scoresLR, scoresGRA, creationTimes
                 title: {
                     display: true,
                     text: 'Essay Number',
-                    color: 'white' // Make axis title white
+                    color: 'white'
                 },
                 ticks: {
-                    color: 'white' // Make x-axis labels white
+                    color: 'white'
                 },
                 grid: {
                     display: true
@@ -106,38 +102,35 @@ function initializeCharts(scoresTR, scoresCC, scoresLR, scoresGRA, creationTimes
                 title: {
                     display: true,
                     text: 'Score',
-                    color: 'white' // Make axis title white
+                    color: 'white'
                 },
                 ticks: {
-                    color: 'white' // Make y-axis labels white
+                    color: 'white'
                 },
                 min: 0,
                 max: 10,
                 grid: {
                     display: true,
-                    color: 'rgba(255, 255, 255, 0.2)' // Light grid lines
+                    color: 'rgba(255, 255, 255, 0.2)'
                 }
             }
         }
     };
 
-    // Create the first chart with rubric scores
     new Chart(document.getElementById('RubricChart'), {
         type: 'line',
         data: rubricChartData,
         options: rubricChartOptions
     });
 
-    // Count the number of essays per day for the second chart
     const essaysPerDay = {};
     creationTimes.forEach(time => {
-        const date = time.split(' ')[0]; // Extract just the date
+        const date = time.split(' ')[0];
         essaysPerDay[date] = (essaysPerDay[date] || 0) + 1;
     });
     const sortedEssaysArray = Object.entries(essaysPerDay).sort((a, b) => new Date(a[0]) - new Date(b[0]));
     const sortedEssaysPerDay = Object.fromEntries(sortedEssaysArray);
 
-    // You can now access sorted dates and counts
     const dates = Object.keys(sortedEssaysPerDay);
     const essayCounts = Object.values(sortedEssaysPerDay);
 
@@ -146,7 +139,7 @@ function initializeCharts(scoresTR, scoresCC, scoresLR, scoresGRA, creationTimes
         datasets: [{
             label: 'Essays Per Day',
             data: essayCounts,
-            borderColor: 'rgba(255, 165, 0, 1.0)', // New border color
+            borderColor: 'rgba(255, 165, 0, 1.0)',
             backgroundColor: 'rgba(145, 128, 128, 0.5)', 
             fill: true,
             pointRadius: 5
@@ -157,7 +150,7 @@ function initializeCharts(scoresTR, scoresCC, scoresLR, scoresGRA, creationTimes
         responsive: true,
         plugins: {
             legend: {
-                display: false // No legend for the essays per day chart
+                display: false
             }
         },
         scales: {
@@ -165,10 +158,10 @@ function initializeCharts(scoresTR, scoresCC, scoresLR, scoresGRA, creationTimes
                 title: {
                     display: true,
                     text: 'Date',
-                    color: 'white' // Make axis title white
+                    color: 'white'
                 },
                 ticks: {
-                    color: 'white' // Make x-axis labels white
+                    color: 'white'
                 },
                 grid: {
                     display: true
@@ -178,10 +171,10 @@ function initializeCharts(scoresTR, scoresCC, scoresLR, scoresGRA, creationTimes
                 title: {
                     display: true,
                     text: 'Number of Essays',
-                    color: 'white' // Make axis title white
+                    color: 'white'
                 },
                 ticks: {
-                    color: 'white' // Make y-axis labels white
+                    color: 'white'
                 },
                 grid: {
                     display: true,
@@ -190,8 +183,6 @@ function initializeCharts(scoresTR, scoresCC, scoresLR, scoresGRA, creationTimes
             }
         }
     };
-
-    // Create the second chart with a new bar color for essays per day
     new Chart(document.getElementById('EssayCountChart'), {
         type: 'bar',
         data: essayCountChartData,
